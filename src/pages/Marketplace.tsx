@@ -10,7 +10,7 @@ import { Shield, TrendingUp, TrendingDown } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { MarketChart } from "@/components/market/MarketChart";
-import { Label } from "@/components/ui/label"; // Add import for Label
+import { Label } from "@/components/ui/label";
 
 interface MarketToken {
   id: string;
@@ -226,6 +226,8 @@ const Marketplace = () => {
   const indexOfLastToken = currentPage * tokensPerPage;
   const indexOfFirstToken = indexOfLastToken - tokensPerPage;
   const currentTokens = filteredTokens.slice(indexOfFirstToken, indexOfLastToken);
+  
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   
   const pageCount = Math.ceil(filteredTokens.length / tokensPerPage);
   
