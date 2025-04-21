@@ -1,16 +1,19 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, Shield } from "lucide-react";
+import { Moon, Sun, Menu, X, Shield, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/use-toast";
 
 const Header = () => {
   const { theme, setTheme } = useTheme();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Handle scroll effect for header
   useEffect(() => {
@@ -20,6 +23,16 @@ const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/");
+    setIsOpen(false);
+  };
 
   return (
     <header
@@ -80,9 +93,15 @@ const Header = () => {
               </Link>
             </>
           ) : (
-            <Link to="/dashboard">
-              <Button className="bg-quantum hover:bg-quantum-dark text-white">Dashboard</Button>
-            </Link>
+            <>
+              <Link to="/dashboard">
+                <Button className="bg-quantum hover:bg-quantum-dark text-white mr-2">Dashboard</Button>
+              </Link>
+              <Button variant="outline" onClick={handleLogout} className="flex items-center">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </>
           )}
         </div>
 
@@ -138,6 +157,18 @@ const Header = () => {
                   Admin
                 </Link>
               )}
+              
+              {isAuthenticated && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout}
+                  className="flex items-center justify-center"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              )}
+              
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <Button
                   variant="ghost"

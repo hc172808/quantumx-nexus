@@ -1,4 +1,3 @@
-
 import { WalletKeys, encryptData, decryptData } from './crypto-utils';
 
 /**
@@ -25,10 +24,10 @@ export interface WalletMeta {
  * Ban duration in milliseconds based on attempt count
  */
 const BAN_DURATIONS = {
-  3: 60 * 1000, // 1 minute
-  4: 5 * 60 * 1000, // 5 minutes
-  5: 60 * 60 * 1000, // 1 hour
-  default: 24 * 60 * 60 * 1000 // 1 day
+  3: 15 * 1000, // 15 seconds (reduced from 1 minute for testing)
+  4: 30 * 1000, // 30 seconds (reduced from 5 minutes)
+  5: 60 * 1000, // 1 minute (reduced from 1 hour)
+  default: 120 * 1000 // 2 minutes (reduced from 1 day)
 };
 
 /**
