@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +20,9 @@ import TokenCreation from "./pages/TokenCreation";
 import TokenInfo from "./pages/TokenInfo";
 import Marketplace from "./pages/Marketplace";
 import AdminPanel from "./pages/AdminPanel";
+import ChangePassword from "./pages/ChangePassword";
+import ForgotPassword from "./pages/ForgotPassword";
+import WhatsAppConfig from "./pages/WhatsAppConfig";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +45,9 @@ const App = () => (
                 <Route path="/token/:address" element={<Layout><TokenInfo /></Layout>} />
                 <Route path="/marketplace" element={<Layout><Marketplace /></Layout>} />
                 <Route path="/admin" element={<Layout><AdminPanel /></Layout>} />
+                <Route path="/change-password" element={<Layout><ChangePassword /></Layout>} />
+                <Route path="/forgot-password" element={<Layout><ForgotPassword /></Layout>} />
+                <Route path="/whatsapp-config" element={<Layout><WhatsAppConfig /></Layout>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<Layout><NotFound /></Layout>} />
               </Routes>
