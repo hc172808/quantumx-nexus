@@ -4,7 +4,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@/hooks/use-wallet";
-import { Shield } from "lucide-react";
+import { Shield, Send, Wallet as WalletIcon, Swap, Cash } from "lucide-react";
+import { TokenTrading } from "@/components/wallet/TokenTrading";
+import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Wallet = () => {
   const {
@@ -21,8 +24,10 @@ const Wallet = () => {
     restoreWallet,
     showSeedPhrase,
     hideSeedPhrase,
+    canCashOut,
   } = useWallet();
 
+  const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [mnemonic, setMnemonic] = useState("");
@@ -32,6 +37,7 @@ const Wallet = () => {
   const [verifyIndex2, setVerifyIndex2] = useState(6 + Math.floor(Math.random() * 6));
   const [verifyWord1, setVerifyWord1] = useState("");
   const [verifyWord2, setVerifyWord2] = useState("");
+  const [activeTab, setActiveTab] = useState<"overview" | "trading" | "history">("overview");
 
   // Handle wallet creation
   const handleCreateWallet = async () => {
@@ -305,77 +311,194 @@ const Wallet = () => {
   if (isUnlocked && wallet) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Wallet Overview */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Wallet Overview</CardTitle>
-              <CardDescription>Manage your digital assets</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <p className="text-sm text-muted-foreground mb-1">Your Address</p>
-                <div className="bg-muted p-3 rounded-md font-mono text-xs break-all">
-                  {wallet.address}
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">Your Assets</h3>
-                {tokens.length > 0 ? (
-                  <div className="space-y-3">
-                    {tokens.map((token, index) => (
-                      <div key={index} className="flex justify-between items-center bg-card p-3 rounded-lg border">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-muted rounded-full mr-3"></div>
-                          <div>
-                            <p className="font-medium">{token.name}</p>
-                            <p className="text-xs text-muted-foreground">{token.symbol}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{token.balance}</p>
-                          <p className="text-xs text-muted-foreground">
-                            ${(parseFloat(token.balance) * token.value).toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No assets yet</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="overview" onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="trading">Trading</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
           
-          {/* Action Panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Wallet Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full" variant="outline">
-                Send
-              </Button>
-              <Button className="w-full" variant="outline">
-                Receive
-              </Button>
-              <Button className="w-full" variant="outline">
-                Swap
-              </Button>
-              <Button className="w-full" variant="outline">
-                Buy
-              </Button>
-              <div className="pt-4 border-t">
-                <Button className="w-full bg-quantum hover:bg-quantum-dark" onClick={showSeedPhrase}>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Backup Wallet
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Overview Tab */}
+          <TabsContent value="overview">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Wallet Overview */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Wallet Overview</CardTitle>
+                  <CardDescription>Manage your digital assets</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <p className="text-sm text-muted-foreground mb-1">Your Address</p>
+                    <div className="bg-muted p-3 rounded-md font-mono text-xs break-all">
+                      {wallet.address}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Your Assets</h3>
+                    {tokens.length > 0 ? (
+                      <div className="space-y-3">
+                        {tokens.map((token, index) => (
+                          <div key={index} className="flex justify-between items-center bg-card p-3 rounded-lg border">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-muted rounded-full mr-3"></div>
+                              <div>
+                                <p className="font-medium">{token.name}</p>
+                                <p className="text-xs text-muted-foreground">{token.symbol}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{token.balance}</p>
+                              <p className="text-xs text-muted-foreground">
+                                ${(parseFloat(token.balance) * token.value).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No assets yet</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Action Panel */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Wallet Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      setActiveTab("trading");
+                      document.querySelector('[value="trading"]')?.dispatchEvent(
+                        new MouseEvent('click', { bubbles: true })
+                      );
+                    }}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      setActiveTab("trading");
+                      document.querySelector('[value="trading"]')?.dispatchEvent(
+                        new MouseEvent('click', { bubbles: true })
+                      );
+                      toast({
+                        title: "Receive Tokens",
+                        description: "Switch to the Receive tab to get your wallet address",
+                      });
+                    }}
+                  >
+                    <WalletIcon className="mr-2 h-4 w-4" />
+                    Receive
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      setActiveTab("trading");
+                      document.querySelector('[value="trading"]')?.dispatchEvent(
+                        new MouseEvent('click', { bubbles: true })
+                      );
+                    }}
+                  >
+                    <Swap className="mr-2 h-4 w-4" />
+                    Swap
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      setActiveTab("trading");
+                      document.querySelector('[value="trading"]')?.dispatchEvent(
+                        new MouseEvent('click', { bubbles: true })
+                      );
+                    }}
+                  >
+                    Buy
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      setActiveTab("trading");
+                      document.querySelector('[value="trading"]')?.dispatchEvent(
+                        new MouseEvent('click', { bubbles: true })
+                      );
+                    }}
+                  >
+                    Trade
+                  </Button>
+                  <div className="pt-4 border-t">
+                    <Button 
+                      className="w-full bg-quantum hover:bg-quantum-dark" 
+                      onClick={showSeedPhrase}
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      Backup Wallet
+                    </Button>
+                  </div>
+                  <div>
+                    <Button 
+                      className="w-full" 
+                      variant={canCashOut() ? "default" : "outline"}
+                      disabled={!canCashOut()}
+                      onClick={() => {
+                        if (canCashOut()) {
+                          setActiveTab("trading");
+                          document.querySelector('[value="trading"]')?.dispatchEvent(
+                            new MouseEvent('click', { bubbles: true })
+                          );
+                          toast({
+                            title: "Cash Out",
+                            description: "Use the Cash Out section at the bottom of the trading panel",
+                          });
+                        } else {
+                          toast({
+                            title: "Cash Out Unavailable",
+                            description: "You need at least 100 NETZ to cash out",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      <Cash className="mr-2 h-4 w-4" />
+                      Cash Out {!canCashOut() && "(Need 100 NETZ)"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          {/* Trading Tab */}
+          <TabsContent value="trading">
+            <TokenTrading />
+          </TabsContent>
+          
+          {/* History Tab */}
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>Your recent wallet activities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  No transaction history yet
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }

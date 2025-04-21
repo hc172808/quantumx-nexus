@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   WalletKeys,
@@ -29,6 +28,15 @@ export interface Token {
   logo?: string;
 }
 
+export interface Trade {
+  tokenSymbol: string;
+  type: 'buy' | 'sell';
+  amount: string;
+  price: number;
+  total: number;
+  timestamp: number;
+}
+
 export interface WalletContextType {
   // Wallet state
   wallet: WalletKeys | null;
@@ -41,6 +49,7 @@ export interface WalletContextType {
   seedPhraseShown: boolean;
   tokens: Token[];
   banInfo: { attempts: number; remainingSeconds: number } | null;
+  tradeHistory: Trade[];
   
   // Actions
   createWallet: (password: string) => Promise<boolean>;
@@ -54,6 +63,15 @@ export interface WalletContextType {
   showSeedPhrase: () => void;
   hideSeedPhrase: () => void;
   setLockoutTime: (seconds: number) => boolean;
+  
+  // New action functions
+  sendToken: (to: string, amount: string, tokenSymbol: string) => boolean;
+  receiveToken: () => string;
+  swapTokens: (fromToken: string, toToken: string, amount: string) => boolean;
+  buyToken: (tokenSymbol: string, amount: string) => boolean;
+  tradeToken: (tokenSymbol: string, type: 'buy' | 'sell', amount: string, price: number) => boolean;
+  cashOut: (amount: string) => boolean;
+  canCashOut: () => boolean;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -70,6 +88,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [seedPhraseShown, setSeedPhraseShown] = useState(false);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [banInfo, setBanInfo] = useState<{ attempts: number; remainingSeconds: number } | null>(null);
+  const [tradeHistory, setTradeHistory] = useState<Trade[]>([]);
   
   // Check wallet existence on load
   useEffect(() => {
@@ -316,6 +335,215 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
+  // Send token to another address
+  const sendToken = useCallback((to: string, amount: string, tokenSymbol: string): boolean => {
+    try {
+      // Find the token
+      const tokenIndex = tokens.findIndex(t => t.symbol === tokenSymbol);
+      if (tokenIndex === -1) return false;
+      
+      const token = tokens[tokenIndex];
+      const tokenBalance = parseFloat(token.balance);
+      const sendAmount = parseFloat(amount);
+      
+      // Check if user has enough balance
+      if (isNaN(sendAmount) || sendAmount <= 0 || tokenBalance < sendAmount) {
+        return false;
+      }
+      
+      // Update token balance
+      const updatedTokens = [...tokens];
+      updatedTokens[tokenIndex] = {
+        ...token,
+        balance: (tokenBalance - sendAmount).toString()
+      };
+      
+      setTokens(updatedTokens);
+      return true;
+    } catch (error) {
+      console.error("Failed to send token:", error);
+      return false;
+    }
+  }, [tokens]);
+  
+  // Get receive address
+  const receiveToken = useCallback((): string => {
+    return wallet ? wallet.address : '';
+  }, [wallet]);
+  
+  // Swap tokens
+  const swapTokens = useCallback((fromToken: string, toToken: string, amount: string): boolean => {
+    try {
+      // Find the tokens
+      const fromTokenIndex = tokens.findIndex(t => t.symbol === fromToken);
+      const toTokenIndex = tokens.findIndex(t => t.symbol === toToken);
+      
+      if (fromTokenIndex === -1 || toTokenIndex === -1) return false;
+      
+      const fromTokenObj = tokens[fromTokenIndex];
+      const toTokenObj = tokens[toTokenIndex];
+      
+      const swapAmount = parseFloat(amount);
+      const fromTokenBalance = parseFloat(fromTokenObj.balance);
+      
+      // Check if user has enough balance
+      if (isNaN(swapAmount) || swapAmount <= 0 || fromTokenBalance < swapAmount) {
+        return false;
+      }
+      
+      // Calculate exchange rate (simplified for demo)
+      const exchangeRate = fromTokenObj.value / toTokenObj.value;
+      const receivedAmount = swapAmount * exchangeRate;
+      
+      // Update token balances
+      const updatedTokens = [...tokens];
+      updatedTokens[fromTokenIndex] = {
+        ...fromTokenObj,
+        balance: (fromTokenBalance - swapAmount).toString()
+      };
+      
+      updatedTokens[toTokenIndex] = {
+        ...toTokenObj,
+        balance: (parseFloat(toTokenObj.balance) + receivedAmount).toString()
+      };
+      
+      setTokens(updatedTokens);
+      return true;
+    } catch (error) {
+      console.error("Failed to swap tokens:", error);
+      return false;
+    }
+  }, [tokens]);
+  
+  // Buy token
+  const buyToken = useCallback((tokenSymbol: string, amount: string): boolean => {
+    try {
+      // Find the token
+      const tokenIndex = tokens.findIndex(t => t.symbol === tokenSymbol);
+      if (tokenIndex === -1) return false;
+      
+      const token = tokens[tokenIndex];
+      const buyAmount = parseFloat(amount);
+      
+      // Check if amount is valid
+      if (isNaN(buyAmount) || buyAmount <= 0) {
+        return false;
+      }
+      
+      // Update token balance (simplified for demo)
+      const updatedTokens = [...tokens];
+      updatedTokens[tokenIndex] = {
+        ...token,
+        balance: (parseFloat(token.balance) + buyAmount).toString()
+      };
+      
+      setTokens(updatedTokens);
+      
+      // Add to trade history
+      const newTrade: Trade = {
+        tokenSymbol,
+        type: 'buy',
+        amount: buyAmount.toString(),
+        price: token.value,
+        total: buyAmount * token.value,
+        timestamp: Date.now()
+      };
+      
+      setTradeHistory(prev => [newTrade, ...prev]);
+      return true;
+    } catch (error) {
+      console.error("Failed to buy token:", error);
+      return false;
+    }
+  }, [tokens]);
+  
+  // Trade token
+  const tradeToken = useCallback((tokenSymbol: string, type: 'buy' | 'sell', amount: string, price: number): boolean => {
+    try {
+      // Find the token
+      const tokenIndex = tokens.findIndex(t => t.symbol === tokenSymbol);
+      if (tokenIndex === -1) return false;
+      
+      const token = tokens[tokenIndex];
+      const tradeAmount = parseFloat(amount);
+      
+      // Check if amount is valid
+      if (isNaN(tradeAmount) || tradeAmount <= 0) {
+        return false;
+      }
+      
+      // Check if user has enough balance for selling
+      if (type === 'sell' && parseFloat(token.balance) < tradeAmount) {
+        return false;
+      }
+      
+      // Update token balance
+      const updatedTokens = [...tokens];
+      updatedTokens[tokenIndex] = {
+        ...token,
+        balance: (parseFloat(token.balance) + (type === 'buy' ? tradeAmount : -tradeAmount)).toString()
+      };
+      
+      setTokens(updatedTokens);
+      
+      // Add to trade history
+      const newTrade: Trade = {
+        tokenSymbol,
+        type,
+        amount: tradeAmount.toString(),
+        price,
+        total: tradeAmount * price,
+        timestamp: Date.now()
+      };
+      
+      setTradeHistory(prev => [newTrade, ...prev]);
+      return true;
+    } catch (error) {
+      console.error("Failed to trade token:", error);
+      return false;
+    }
+  }, [tokens]);
+  
+  // Cash out
+  const cashOut = useCallback((amount: string): boolean => {
+    try {
+      // Find NETZ token
+      const netzIndex = tokens.findIndex(t => t.symbol === "NETZ");
+      if (netzIndex === -1) return false;
+      
+      const netzToken = tokens[netzIndex];
+      const netzBalance = parseFloat(netzToken.balance);
+      const cashOutAmount = parseFloat(amount);
+      
+      // Check if user has enough balance
+      if (isNaN(cashOutAmount) || cashOutAmount <= 0 || netzBalance < cashOutAmount) {
+        return false;
+      }
+      
+      // Update NETZ balance
+      const updatedTokens = [...tokens];
+      updatedTokens[netzIndex] = {
+        ...netzToken,
+        balance: (netzBalance - cashOutAmount).toString()
+      };
+      
+      setTokens(updatedTokens);
+      return true;
+    } catch (error) {
+      console.error("Failed to cash out:", error);
+      return false;
+    }
+  }, [tokens]);
+  
+  // Check if user can cash out (has at least 100 NETZ)
+  const canCashOut = useCallback((): boolean => {
+    const netzToken = tokens.find(t => t.symbol === "NETZ");
+    if (!netzToken) return false;
+    
+    const netzBalance = parseFloat(netzToken.balance);
+    return netzBalance >= 100;
+  }, [tokens]);
+  
   const value = {
     wallet,
     isLoading,
@@ -327,6 +555,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     seedPhraseShown,
     tokens,
     banInfo,
+    tradeHistory,
     
     createWallet,
     unlockWallet,
@@ -338,7 +567,16 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     addToken,
     showSeedPhrase,
     hideSeedPhrase,
-    setLockoutTime
+    setLockoutTime,
+    
+    // New actions
+    sendToken,
+    receiveToken,
+    swapTokens,
+    buyToken,
+    tradeToken,
+    cashOut,
+    canCashOut
   };
   
   return (

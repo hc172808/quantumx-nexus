@@ -9,7 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { Shield, Ban } from "lucide-react";
+import { 
+  banIP, 
+  banLocation, 
+  getBannedIPs, 
+  getBannedLocations, 
+  removeIPBan, 
+  removeLocationBan 
+} from "@/lib/wallet/wallet-storage";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface PendingToken {
   id: string;
@@ -42,9 +52,24 @@ interface BannedAddress {
   expiresAt: string | null;
 }
 
+interface BannedLocation {
+  location: string;
+  reason: string;
+  bannedAt: string;
+  expiresAt: string | null;
+}
+
+interface BannedIP {
+  ip: string;
+  reason: string;
+  bannedAt: string;
+  expiresAt: string | null;
+}
+
 const AdminPanel = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [pendingTokens, setPendingTokens] = useState<PendingToken[]>([]);
   const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics[]>([]);
@@ -53,27 +78,31 @@ const AdminPanel = () => {
   const [tokenCreationFee, setTokenCreationFee] = useState("100");
   const [isLoading, setIsLoading] = useState(true);
   
-  // Add NETZ-specific states
   const [initialPrice, setInitialPrice] = useState("0.001");
   const [mintAmount, setMintAmount] = useState("1000");
   const [totalMinted, setTotalMinted] = useState("0");
   const maxSupply = "9000000000";
 
-  // Check if user is admin, if not redirect
+  const [bannedIPs, setBannedIPs] = useState<BannedIP[]>([]);
+  const [bannedLocations, setBannedLocations] = useState<BannedLocation[]>([]);
+  const [showAddIPBan, setShowAddIPBan] = useState(false);
+  const [showAddLocationBan, setShowAddLocationBan] = useState(false);
+  const [newBanIP, setNewBanIP] = useState('');
+  const [newBanLocation, setNewBanLocation] = useState('');
+  const [newBanReason, setNewBanReason] = useState('');
+  const [newBanDuration, setNewBanDuration] = useState<'1day' | '1week' | '1month' | 'permanent'>('1day');
+
   useEffect(() => {
     if (!user || !isAdmin) {
       navigate("/");
       return;
     }
     
-    // Fetch admin data
     const fetchAdminData = async () => {
       setIsLoading(true);
       try {
-        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock pending tokens
         const mockPendingTokens: PendingToken[] = [
           {
             id: "pt1",
@@ -101,7 +130,6 @@ const AdminPanel = () => {
           },
         ];
         
-        // Mock token metrics
         const mockTokenMetrics: TokenMetrics[] = [
           {
             id: "tm1",
@@ -125,25 +153,14 @@ const AdminPanel = () => {
           },
         ];
         
-        // Mock banned addresses
-        const mockBannedAddresses: BannedAddress[] = [
-          {
-            address: "qv9x8c7v6b5n4m3l2k1j",
-            reason: "Fraudulent activity",
-            bannedAt: "2025-04-15",
-            expiresAt: "2025-05-15",
-          },
-          {
-            address: "qv8w7v6u5t4s3r2q1p",
-            reason: "Attempted exploit",
-            bannedAt: "2025-04-10",
-            expiresAt: null,
-          },
-        ];
+        const ips = getBannedIPs();
+        const locations = getBannedLocations();
         
         setPendingTokens(mockPendingTokens);
         setTokenMetrics(mockTokenMetrics);
-        setBannedAddresses(mockBannedAddresses);
+        setBannedAddresses([]);
+        setBannedIPs(ips);
+        setBannedLocations(locations);
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
       } finally {
@@ -155,20 +172,109 @@ const AdminPanel = () => {
   }, [user, isAdmin, navigate]);
   
   const handleApproveToken = (tokenId: string) => {
-    // Mock approve token
     setPendingTokens(prev => prev.filter(token => token.id !== tokenId));
   };
   
   const handleRejectToken = (tokenId: string) => {
-    // Mock reject token
     setPendingTokens(prev => prev.filter(token => token.id !== tokenId));
   };
   
   const handleSaveSettings = () => {
-    // Mock save settings
     console.log("Settings saved:", {
       mintPrice,
       tokenCreationFee,
+    });
+  };
+  
+  const handleAddIPBan = () => {
+    if (!newBanIP || !newBanReason) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter an IP address and reason",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    let expiresAt = null;
+    const now = Date.now();
+    
+    if (newBanDuration === '1day') {
+      expiresAt = now + (24 * 60 * 60 * 1000);
+    } else if (newBanDuration === '1week') {
+      expiresAt = now + (7 * 24 * 60 * 60 * 1000);
+    } else if (newBanDuration === '1month') {
+      expiresAt = now + (30 * 24 * 60 * 60 * 1000);
+    }
+    
+    banIP(newBanIP, newBanReason, expiresAt);
+    
+    setBannedIPs(getBannedIPs());
+    
+    setNewBanIP('');
+    setNewBanReason('');
+    setNewBanDuration('1day');
+    setShowAddIPBan(false);
+    
+    toast({
+      title: "IP Banned",
+      description: `IP ${newBanIP} has been banned`,
+    });
+  };
+  
+  const handleAddLocationBan = () => {
+    if (!newBanLocation || !newBanReason) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a location and reason",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    let expiresAt = null;
+    const now = Date.now();
+    
+    if (newBanDuration === '1day') {
+      expiresAt = now + (24 * 60 * 60 * 1000);
+    } else if (newBanDuration === '1week') {
+      expiresAt = now + (7 * 24 * 60 * 60 * 1000);
+    } else if (newBanDuration === '1month') {
+      expiresAt = now + (30 * 24 * 60 * 60 * 1000);
+    }
+    
+    banLocation(newBanLocation, newBanReason, expiresAt);
+    
+    setBannedLocations(getBannedLocations());
+    
+    setNewBanLocation('');
+    setNewBanReason('');
+    setNewBanDuration('1day');
+    setShowAddLocationBan(false);
+    
+    toast({
+      title: "Location Banned",
+      description: `Location "${newBanLocation}" has been banned`,
+    });
+  };
+  
+  const handleRemoveIPBan = (ip: string) => {
+    removeIPBan(ip);
+    setBannedIPs(getBannedIPs());
+    
+    toast({
+      title: "IP Ban Removed",
+      description: `Ban for IP ${ip} has been removed`,
+    });
+  };
+  
+  const handleRemoveLocationBan = (location: string) => {
+    removeLocationBan(location);
+    setBannedLocations(getBannedLocations());
+    
+    toast({
+      title: "Location Ban Removed",
+      description: `Ban for location "${location}" has been removed`,
     });
   };
   
@@ -198,7 +304,6 @@ const AdminPanel = () => {
           <TabsTrigger value="security" className="flex-1">Security</TabsTrigger>
         </TabsList>
         
-        {/* Pending Tokens Tab */}
         <TabsContent value="pending">
           <Card>
             <CardHeader>
@@ -268,7 +373,6 @@ const AdminPanel = () => {
           </Card>
         </TabsContent>
         
-        {/* Token Metrics Tab */}
         <TabsContent value="metrics">
           <Card>
             <CardHeader>
@@ -320,7 +424,6 @@ const AdminPanel = () => {
           </Card>
         </TabsContent>
         
-        {/* System Settings Tab */}
         <TabsContent value="settings">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -498,7 +601,6 @@ const AdminPanel = () => {
           </div>
         </TabsContent>
         
-        {/* Security Tab */}
         <TabsContent value="security">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -631,10 +733,218 @@ const AdminPanel = () => {
                 </div>
               </CardContent>
             </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle>Banned IPs</CardTitle>
+                  <CardDescription>
+                    Block access by IP address
+                  </CardDescription>
+                </div>
+                <Dialog open={showAddIPBan} onOpenChange={setShowAddIPBan}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Ban className="mr-2 h-4 w-4" />
+                      Add Ban
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Ban IP Address</DialogTitle>
+                      <DialogDescription>
+                        Enter the IP address details to ban
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="ip-address">IP Address</Label>
+                        <Input
+                          id="ip-address"
+                          placeholder="e.g., 192.168.1.1"
+                          value={newBanIP}
+                          onChange={(e) => setNewBanIP(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="ban-reason">Reason</Label>
+                        <Input
+                          id="ban-reason"
+                          placeholder="Reason for ban"
+                          value={newBanReason}
+                          onChange={(e) => setNewBanReason(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="ban-duration">Duration</Label>
+                        <Select value={newBanDuration} onValueChange={(v: any) => setNewBanDuration(v)}>
+                          <SelectTrigger id="ban-duration">
+                            <SelectValue placeholder="Select ban duration" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1day">1 Day</SelectItem>
+                            <SelectItem value="1week">1 Week</SelectItem>
+                            <SelectItem value="1month">1 Month</SelectItem>
+                            <SelectItem value="permanent">Permanent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddIPBan(false)}>
+                        Cancel
+                      </Button>
+                      <Button className="bg-quantum hover:bg-quantum-dark" onClick={handleAddIPBan}>
+                        Ban IP
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {bannedIPs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No banned IPs
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bannedIPs.map((bannedIP, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-mono text-sm">{bannedIP.ip}</div>
+                          <Badge variant="outline" className="ml-2">
+                            {bannedIP.expiresAt ? `Until ${new Date(bannedIP.expiresAt).toLocaleDateString()}` : "Permanent"}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          <strong>Reason:</strong> {bannedIP.reason}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Banned on {new Date(bannedIP.bannedAt).toLocaleDateString()}
+                        </div>
+                        <div className="mt-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRemoveIPBan(bannedIP.ip)}
+                          >
+                            Remove Ban
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle>Banned Locations</CardTitle>
+                  <CardDescription>
+                    Block access by location (country, region)
+                  </CardDescription>
+                </div>
+                <Dialog open={showAddLocationBan} onOpenChange={setShowAddLocationBan}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Ban className="mr-2 h-4 w-4" />
+                      Add Ban
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Ban Location</DialogTitle>
+                      <DialogDescription>
+                        Enter the location details to ban
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="location">Location</Label>
+                        <Input
+                          id="location"
+                          placeholder="e.g., United States, Europe"
+                          value={newBanLocation}
+                          onChange={(e) => setNewBanLocation(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="location-ban-reason">Reason</Label>
+                        <Input
+                          id="location-ban-reason"
+                          placeholder="Reason for ban"
+                          value={newBanReason}
+                          onChange={(e) => setNewBanReason(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="location-ban-duration">Duration</Label>
+                        <Select value={newBanDuration} onValueChange={(v: any) => setNewBanDuration(v)}>
+                          <SelectTrigger id="location-ban-duration">
+                            <SelectValue placeholder="Select ban duration" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1day">1 Day</SelectItem>
+                            <SelectItem value="1week">1 Week</SelectItem>
+                            <SelectItem value="1month">1 Month</SelectItem>
+                            <SelectItem value="permanent">Permanent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddLocationBan(false)}>
+                        Cancel
+                      </Button>
+                      <Button className="bg-quantum hover:bg-quantum-dark" onClick={handleAddLocationBan}>
+                        Ban Location
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {bannedLocations.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No banned locations
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bannedLocations.map((bannedLocation, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-medium">{bannedLocation.location}</div>
+                          <Badge variant="outline" className="ml-2">
+                            {bannedLocation.expiresAt ? `Until ${new Date(parseInt(bannedLocation.expiresAt)).toLocaleDateString()}` : "Permanent"}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          <strong>Reason:</strong> {bannedLocation.reason}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Banned on {new Date(parseInt(bannedLocation.bannedAt)).toLocaleDateString()}
+                        </div>
+                        <div className="mt-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRemoveLocationBan(bannedLocation.location)}
+                          >
+                            Remove Ban
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
-      {/* Add NETZ Coin Management Card before the token metrics */}
+      
       <Card className="lg:col-span-2 mb-6">
         <CardHeader>
           <CardTitle>NETZ Coin Management</CardTitle>
@@ -685,9 +995,6 @@ const AdminPanel = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Fix the incorrect > symbol in the metrics section */}
-      
     </div>
   );
 };

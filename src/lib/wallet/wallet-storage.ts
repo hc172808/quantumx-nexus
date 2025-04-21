@@ -1,4 +1,3 @@
-
 import { WalletKeys, encryptData, decryptData } from './crypto-utils';
 
 /**
@@ -9,7 +8,9 @@ const STORAGE_KEYS = {
   WALLET_META: 'qv_wallet_meta',
   LOGIN_ATTEMPTS: 'qv_login_attempts',
   BANNED_UNTIL: 'qv_banned_until',
-  CUSTOM_LOCKOUT: 'qv_custom_lockout'
+  CUSTOM_LOCKOUT: 'qv_custom_lockout',
+  BANNED_IPS: 'qv_banned_ips',
+  BANNED_LOCATIONS: 'qv_banned_locations'
 };
 
 /**
@@ -277,5 +278,127 @@ export function setCustomLockoutTime(seconds: number): void {
     }
   } catch (error) {
     console.error('Failed to set custom lockout time:', error);
+  }
+}
+
+/**
+ * Ban an IP address
+ * @param ip The IP address to ban
+ * @param reason The reason for the ban
+ * @param expiresAt Optional expiration timestamp (null for permanent)
+ */
+export function banIP(ip: string, reason: string, expiresAt: number | null = null): void {
+  try {
+    // Get current banned IPs
+    const bannedIPsJson = localStorage.getItem(STORAGE_KEYS.BANNED_IPS);
+    const bannedIPs = bannedIPsJson ? JSON.parse(bannedIPsJson) : [];
+    
+    // Add new ban
+    bannedIPs.push({
+      ip,
+      reason,
+      bannedAt: Date.now(),
+      expiresAt
+    });
+    
+    localStorage.setItem(STORAGE_KEYS.BANNED_IPS, JSON.stringify(bannedIPs));
+  } catch (error) {
+    console.error('Failed to ban IP:', error);
+  }
+}
+
+/**
+ * Ban a location
+ * @param location The location to ban (country, region, etc.)
+ * @param reason The reason for the ban
+ * @param expiresAt Optional expiration timestamp (null for permanent)
+ */
+export function banLocation(location: string, reason: string, expiresAt: number | null = null): void {
+  try {
+    // Get current banned locations
+    const bannedLocationsJson = localStorage.getItem(STORAGE_KEYS.BANNED_LOCATIONS);
+    const bannedLocations = bannedLocationsJson ? JSON.parse(bannedLocationsJson) : [];
+    
+    // Add new ban
+    bannedLocations.push({
+      location,
+      reason,
+      bannedAt: Date.now(),
+      expiresAt
+    });
+    
+    localStorage.setItem(STORAGE_KEYS.BANNED_LOCATIONS, JSON.stringify(bannedLocations));
+  } catch (error) {
+    console.error('Failed to ban location:', error);
+  }
+}
+
+/**
+ * Get banned IPs
+ * @returns Array of banned IP objects
+ */
+export function getBannedIPs(): any[] {
+  try {
+    const bannedIPsJson = localStorage.getItem(STORAGE_KEYS.BANNED_IPS);
+    return bannedIPsJson ? JSON.parse(bannedIPsJson) : [];
+  } catch (error) {
+    console.error('Failed to get banned IPs:', error);
+    return [];
+  }
+}
+
+/**
+ * Get banned locations
+ * @returns Array of banned location objects
+ */
+export function getBannedLocations(): any[] {
+  try {
+    const bannedLocationsJson = localStorage.getItem(STORAGE_KEYS.BANNED_LOCATIONS);
+    return bannedLocationsJson ? JSON.parse(bannedLocationsJson) : [];
+  } catch (error) {
+    console.error('Failed to get banned locations:', error);
+    return [];
+  }
+}
+
+/**
+ * Remove IP ban
+ * @param ip The IP address to unban
+ * @returns true if successful, false otherwise
+ */
+export function removeIPBan(ip: string): boolean {
+  try {
+    const bannedIPsJson = localStorage.getItem(STORAGE_KEYS.BANNED_IPS);
+    if (!bannedIPsJson) return false;
+    
+    const bannedIPs = JSON.parse(bannedIPsJson);
+    const filteredIPs = bannedIPs.filter((ban: any) => ban.ip !== ip);
+    
+    localStorage.setItem(STORAGE_KEYS.BANNED_IPS, JSON.stringify(filteredIPs));
+    return true;
+  } catch (error) {
+    console.error('Failed to remove IP ban:', error);
+    return false;
+  }
+}
+
+/**
+ * Remove location ban
+ * @param location The location to unban
+ * @returns true if successful, false otherwise
+ */
+export function removeLocationBan(location: string): boolean {
+  try {
+    const bannedLocationsJson = localStorage.getItem(STORAGE_KEYS.BANNED_LOCATIONS);
+    if (!bannedLocationsJson) return false;
+    
+    const bannedLocations = JSON.parse(bannedLocationsJson);
+    const filteredLocations = bannedLocations.filter((ban: any) => ban.location !== location);
+    
+    localStorage.setItem(STORAGE_KEYS.BANNED_LOCATIONS, JSON.stringify(filteredLocations));
+    return true;
+  } catch (error) {
+    console.error('Failed to remove location ban:', error);
+    return false;
   }
 }
