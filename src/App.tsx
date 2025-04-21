@@ -5,22 +5,50 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { ThemeProvider } from "@/hooks/use-theme";
+import { AuthProvider } from "@/hooks/use-auth";
+import { WalletProvider } from "@/hooks/use-wallet";
+import Layout from "./components/layout/Layout";
+
+// Import pages
+import Wallet from "./pages/Wallet";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import TokenCreation from "./pages/TokenCreation";
+import TokenInfo from "./pages/TokenInfo";
+import Marketplace from "./pages/Marketplace";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="dark">
+      <AuthProvider>
+        <WalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Layout><Index /></Layout>} />
+                <Route path="/wallet" element={<Layout><Wallet /></Layout>} />
+                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+                <Route path="/login" element={<Layout><Login /></Layout>} />
+                <Route path="/signup" element={<Layout><Signup /></Layout>} />
+                <Route path="/token-creation" element={<Layout><TokenCreation /></Layout>} />
+                <Route path="/token/:address" element={<Layout><TokenInfo /></Layout>} />
+                <Route path="/marketplace" element={<Layout><Marketplace /></Layout>} />
+                <Route path="/admin" element={<Layout><AdminPanel /></Layout>} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<Layout><NotFound /></Layout>} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </WalletProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
