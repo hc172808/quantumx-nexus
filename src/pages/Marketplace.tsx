@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { Shield, TrendingUp, TrendingDown } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { MarketChart } from "@/components/market/MarketChart";
+import { Label } from "@/components/ui/label"; // Add import for Label
 
 interface MarketToken {
   id: string;
@@ -35,11 +35,9 @@ const Marketplace = () => {
   const navigate = useNavigate();
   const { isUnlocked } = useWallet();
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [tokensPerPage] = useState(5);
   
-  // Trading view state
   const [showTrading, setShowTrading] = useState(false);
   const [selectedToken, setSelectedToken] = useState<MarketToken | null>(null);
 
@@ -47,10 +45,8 @@ const Marketplace = () => {
     const fetchTokens = async () => {
       setIsLoading(true);
       try {
-        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock data
         const mockTokens: MarketToken[] = [
           {
             id: "qv000000000000quantumtoken0000000000000",
@@ -170,11 +166,10 @@ const Marketplace = () => {
     fetchTokens();
   }, []);
 
-  // Filter tokens based on search query
   useEffect(() => {
     if (!searchQuery) {
       setFilteredTokens(tokens);
-      setCurrentPage(1); // Reset to first page on search
+      setCurrentPage(1);
       return;
     }
     
@@ -188,7 +183,6 @@ const Marketplace = () => {
     setCurrentPage(1);
   }, [searchQuery, tokens]);
 
-  // Sort tokens
   useEffect(() => {
     const sorted = [...filteredTokens].sort((a, b) => {
       switch (sortBy) {
@@ -215,7 +209,6 @@ const Marketplace = () => {
       return;
     }
     
-    // Open trading view with selected token
     setSelectedToken(token);
     setShowTrading(true);
   };
@@ -230,13 +223,10 @@ const Marketplace = () => {
     setShowTrading(true);
   };
 
-  // Get current tokens for pagination
   const indexOfLastToken = currentPage * tokensPerPage;
   const indexOfFirstToken = indexOfLastToken - tokensPerPage;
   const currentTokens = filteredTokens.slice(indexOfFirstToken, indexOfLastToken);
   
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   const pageCount = Math.ceil(filteredTokens.length / tokensPerPage);
   
   return (
@@ -513,7 +503,6 @@ const Marketplace = () => {
                       </PaginationItem>
                       
                       {[...Array(pageCount)].map((_, i) => {
-                        // Show first page, last page, and pages around current page
                         if (
                           i === 0 || 
                           i === pageCount - 1 || 
@@ -531,7 +520,6 @@ const Marketplace = () => {
                           );
                         }
                         
-                        // Show ellipsis for page gaps
                         if (
                           (i === 1 && currentPage > 4) || 
                           (i === pageCount - 2 && currentPage < pageCount - 3)

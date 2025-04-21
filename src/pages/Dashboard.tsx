@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallet } from "@/hooks/use-wallet";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Lock, SliderHorizontal } from "lucide-react";
+import { Shield, Lock, SlidersHorizontal } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -207,7 +206,7 @@ const Dashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <SliderHorizontal className="mr-2 h-5 w-5" />
+                  <SlidersHorizontal className="mr-2 h-5 w-5" />
                   Account Preferences
                 </CardTitle>
                 <CardDescription>
