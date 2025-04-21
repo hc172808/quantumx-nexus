@@ -1,191 +1,130 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+ 
 @layer base {
   :root {
-    --background: 240 10% 99%;
-    --foreground: 224 71% 4%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-
-    --primary: 235 46% 36%; /* Main blockchain blue */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 50% 30%; /* Deeper blue */
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 4% 46%;
-
-    --accent: 266 47% 38%; /* Quantum purple */
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 10% 90%;
-    --input: 240 10% 90%;
-    --ring: 235 46% 36%;
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 71% 4%;
-    --sidebar-primary: 235 46% 36%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 235 46% 45%;
-
-    --success: 123 46% 34%;
-    --warning: 36 100% 50%;
-    --info: 217 91% 60%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+ 
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+ 
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+ 
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --ring: 215 20.2% 65.1%;
+ 
+    --radius: 0.5rem;
+    
+    /* Quantum blockchain theme colors */
+    --quantum: 260 86% 74%;
+    --quantum-dark: 260 64% 42%;
+    --quantum-light: 260 100% 94%;
+    --blockchain-success: 142 76% 36%;
+    --blockchain-warning: 38 92% 50%;
+    --blockchain-error: 0 84% 60%;
   }
-
+ 
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 7%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 7%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 235 46% 50%; /* Lighter blockchain blue for dark mode */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 50% 40%; /* Lighter deeper blue */
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 65%;
-
-    --accent: 266 47% 50%; /* Brighter quantum purple for dark mode */
-    --accent-foreground: 0 0% 98%;
-
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+ 
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+ 
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+ 
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+ 
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+ 
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+ 
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+ 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --ring: 216 34% 17%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 235 46% 50%;
-
-    --sidebar-background: 240 10% 7%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 235 46% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 16%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 235 46% 50%;
-
-    --success: 123 46% 45%;
-    --warning: 36 100% 60%;
-    --info: 217 91% 65%;
+    /* Quantum blockchain theme colors in dark mode */
+    --quantum: 260 76% 64%;
+    --quantum-dark: 260 70% 35%;
+    --quantum-light: 260 100% 84%;
+    --blockchain-success: 142 76% 45%;
+    --blockchain-warning: 38 92% 60%;
+    --blockchain-error: 0 84% 70%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
 
-  /* Blockchain app specific styles */
-  .quantum-glow {
-    box-shadow: 0 0 15px rgba(110, 89, 165, 0.5);
-    transition: box-shadow 0.3s ease-in-out;
+/* Additional quantum blockchain theme utility classes */
+@layer utilities {
+  .bg-quantum {
+    background-color: hsl(var(--quantum));
   }
-  
-  .quantum-glow:hover {
-    box-shadow: 0 0 25px rgba(110, 89, 165, 0.7);
+  .bg-quantum-dark {
+    background-color: hsl(var(--quantum-dark));
   }
-
-  .token-card {
-    @apply rounded-xl overflow-hidden bg-card border border-border transition-all duration-300;
+  .bg-quantum-light {
+    background-color: hsl(var(--quantum-light));
   }
-
-  .token-card:hover {
-    @apply shadow-md border-primary/30 scale-[1.01];
+  .text-quantum {
+    color: hsl(var(--quantum));
   }
-  
-  .bg-blur-card {
-    @apply backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl;
+  .text-quantum-dark {
+    color: hsl(var(--quantum-dark));
   }
-  
-  .glass-card {
-    @apply backdrop-blur-md bg-white/5 border border-white/10 shadow-lg rounded-2xl;
+  .text-quantum-light {
+    color: hsl(var(--quantum-light));
   }
-  
-  .glass-button {
-    @apply backdrop-blur-sm bg-white/10 hover:bg-white/20 border border-white/20 
-           transition duration-300 ease-in-out text-white rounded-lg;
+  .text-blockchain-success {
+    color: hsl(var(--blockchain-success));
   }
-  
-  .cyber-border {
-    position: relative;
-    border-radius: 0.5rem;
-    background-clip: padding-box;
-    border: 1px solid transparent;
+  .text-blockchain-warning {
+    color: hsl(var(--blockchain-warning));
   }
-  
-  .cyber-border::after {
-    content: "";
-    position: absolute;
-    top: -1px;
-    right: -1px;
-    bottom: -1px;
-    left: -1px;
-    z-index: -1;
-    border-radius: inherit;
-    background: linear-gradient(
-      to right bottom,
-      theme('colors.quantum.light'),
-      theme('colors.blockchain.primary'),
-      theme('colors.blockchain.accent')
-    );
+  .text-blockchain-error {
+    color: hsl(var(--blockchain-error));
   }
-  
-  @keyframes pulse-secure {
-    0% { box-shadow: 0 0 0 0 rgba(110, 89, 165, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(110, 89, 165, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(110, 89, 165, 0); }
-  }
-  
-  .secure-pulse {
-    animation: pulse-secure 2s infinite;
-  }
-  
-  .text-gradient-quantum {
-    @apply bg-gradient-to-r from-quantum-light via-quantum to-blockchain-primary bg-clip-text text-transparent;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: theme('colors.muted.DEFAULT');
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: theme('colors.primary.DEFAULT');
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.quantum.DEFAULT');
+  .border-quantum {
+    border-color: hsl(var(--quantum));
   }
 }
