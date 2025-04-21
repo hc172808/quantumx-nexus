@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,6 +53,12 @@ const AdminPanel = () => {
   const [tokenCreationFee, setTokenCreationFee] = useState("100");
   const [isLoading, setIsLoading] = useState(true);
   
+  // Add NETZ-specific states
+  const [initialPrice, setInitialPrice] = useState("0.001");
+  const [mintAmount, setMintAmount] = useState("1000");
+  const [totalMinted, setTotalMinted] = useState("0");
+  const maxSupply = "9000000000";
+
   // Check if user is admin, if not redirect
   useEffect(() => {
     if (!user || !isAdmin) {
@@ -564,7 +569,7 @@ const AdminPanel = () => {
                     <div className="text-sm text-right">1 hour ban</div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="text-sm">>5 attempts</div>
+                    <div className="text-sm">&gt;5 attempts</div>
                     <div className="text-sm text-right">1 day ban</div>
                   </div>
                 </div>
@@ -629,6 +634,60 @@ const AdminPanel = () => {
           </div>
         </TabsContent>
       </Tabs>
+      {/* Add NETZ Coin Management Card before the token metrics */}
+      <Card className="lg:col-span-2 mb-6">
+        <CardHeader>
+          <CardTitle>NETZ Coin Management</CardTitle>
+          <CardDescription>Manage the native NETZ coin settings and distribution</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Initial Price (USD)</Label>
+              <Input
+                type="number"
+                min="0.0001"
+                step="0.0001"
+                value={initialPrice}
+                onChange={(e) => setInitialPrice(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Mint Amount</Label>
+              <Input
+                type="number"
+                min="1"
+                max={maxSupply}
+                value={mintAmount}
+                onChange={(e) => setMintAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Supply</p>
+              <p className="font-medium">{maxSupply} NETZ</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Minted</p>
+              <p className="font-medium">{totalMinted} NETZ</p>
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <Button 
+              className="w-full bg-quantum hover:bg-quantum-dark"
+              onClick={() => console.log('Minting NETZ')}
+            >
+              Mint NETZ Coins
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fix the incorrect > symbol in the metrics section */}
+      
     </div>
   );
 };
