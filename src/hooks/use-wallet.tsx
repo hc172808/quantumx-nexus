@@ -14,7 +14,8 @@ import {
   setWalletBackupStatus,
   removeWallet,
   isUserBanned,
-  getBanInfo
+  getBanInfo,
+  setCustomLockoutTime
 } from '@/lib/wallet/wallet-storage';
 
 // Types
@@ -52,6 +53,7 @@ export interface WalletContextType {
   addToken: (token: Omit<Token, 'balance' | 'value'>) => void;
   showSeedPhrase: () => void;
   hideSeedPhrase: () => void;
+  setLockoutTime: (seconds: number) => boolean;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -302,6 +304,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setSeedPhrase(null);
   }, []);
   
+  // Set custom lockout time
+  const setLockoutTime = useCallback((seconds: number): boolean => {
+    try {
+      // Set lockout time in storage
+      setCustomLockoutTime(seconds);
+      return true;
+    } catch (error) {
+      console.error("Failed to set lockout time:", error);
+      return false;
+    }
+  }, []);
+  
   const value = {
     wallet,
     isLoading,
@@ -323,7 +337,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     checkSeedPhraseWord,
     addToken,
     showSeedPhrase,
-    hideSeedPhrase
+    hideSeedPhrase,
+    setLockoutTime
   };
   
   return (
