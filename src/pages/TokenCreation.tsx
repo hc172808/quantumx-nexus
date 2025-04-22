@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,7 @@ import { Coins, Shield } from "lucide-react";
 
 const TokenCreation = () => {
   const { user } = useAuth();
-  const { walletConnected } = useWallet();
+  const { isUnlocked } = useWallet();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,38 +29,33 @@ const TokenCreation = () => {
   const [description, setDescription] = useState("");
   const [network, setNetwork] = useState("netz-mainnet");
 
-  // Token features
   const [mintable, setMintable] = useState(false);
   const [mutableInfo, setMutableInfo] = useState(false);
   const [renounceOwnership, setRenounceOwnership] = useState(false);
   const [quantumProtection, setQuantumProtection] = useState(true);
 
-  // Pricing
   const [featurePricing, setFeaturePricing] = useState({
     mintable: "50",
     mutableInfo: "75",
     renounceOwnership: "25",
     quantumProtection: "200"
   });
-  const [totalPrice, setTotalPrice] = useState("100");  // Base price
+  const [totalPrice, setTotalPrice] = useState("100");
 
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState(1);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!user) {
       navigate("/login");
     }
 
-    // Load feature pricing
     const pricing = getTokenFeaturePricing();
     setFeaturePricing(pricing);
   }, [user, navigate]);
 
-  // Calculate total price whenever features change
   useEffect(() => {
-    let price = 100; // Base token creation fee
+    let price = 100;
     
     if (mintable) price += parseFloat(featurePricing.mintable);
     if (mutableInfo) price += parseFloat(featurePricing.mutableInfo);
@@ -84,13 +78,10 @@ const TokenCreation = () => {
     setIsCreating(true);
 
     try {
-      // Simulate token creation
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Generate a random token ID
       const tokenId = "tk" + Math.random().toString(36).substring(2, 12);
       
-      // Create token object
       const token = {
         id: tokenId,
         name,
@@ -111,10 +102,8 @@ const TokenCreation = () => {
         creator: user?.id || "unknown",
       };
       
-      // Save to local storage
       saveCreatedToken(token);
       
-      // Add to pending tokens if admin approval is required
       const pendingTokens = localStorage.getItem('pendingTokens');
       if (pendingTokens) {
         const tokens = JSON.parse(pendingTokens);
@@ -138,7 +127,6 @@ const TokenCreation = () => {
         description: "Your token has been submitted for approval",
       });
       
-      // Navigate to token page
       setTimeout(() => {
         navigate(`/token/${tokenId}`);
       }, 1500);
@@ -172,7 +160,7 @@ const TokenCreation = () => {
     setStep(step - 1);
   };
 
-  if (!walletConnected) {
+  if (!isUnlocked) {
     return (
       <div className="container max-w-xl mx-auto px-4 py-16 text-center">
         <Card>
