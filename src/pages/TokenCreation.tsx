@@ -1,378 +1,522 @@
 
-import { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useWallet } from "@/hooks/use-wallet";
-import { Shield } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { saveCreatedToken, getTokenFeaturePricing } from "@/lib/wallet/wallet-storage";
+import { Coins, Shield } from "lucide-react";
 
 const TokenCreation = () => {
-  const { isUnlocked, wallet } = useWallet();
+  const { user } = useAuth();
+  const { walletConnected } = useWallet();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form fields
-  const [tokenName, setTokenName] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("");
-  const [network, setNetwork] = useState("Quantum Network");
-  const [totalSupply, setTotalSupply] = useState("");
-  const [price, setPrice] = useState("");
+  const [name, setName] = useState("");
+  const [symbol, setSymbol] = useState("");
+  const [decimals, setDecimals] = useState("18");
+  const [supply, setSupply] = useState("1000000");
+  const [initialPrice, setInitialPrice] = useState("0.001");
+  const [description, setDescription] = useState("");
+  const [network, setNetwork] = useState("netz-mainnet");
+
+  // Token features
   const [mintable, setMintable] = useState(false);
   const [mutableInfo, setMutableInfo] = useState(false);
-  const [ownershipRenounced, setOwnershipRenounced] = useState(false);
+  const [renounceOwnership, setRenounceOwnership] = useState(false);
   const [quantumProtection, setQuantumProtection] = useState(true);
-  const [updateAuthority, setUpdateAuthority] = useState("");
-  const [freezeAuthority, setFreezeAuthority] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Feature pricing
-  const featurePricing = {
-    mintable: 0.05,
-    mutableInfo: 0.03,
-    ownershipRenounced: -0.02, // Discount for renouncing ownership
-    quantumProtection: 0.10
+  // Pricing
+  const [featurePricing, setFeaturePricing] = useState({
+    mintable: "50",
+    mutableInfo: "75",
+    renounceOwnership: "25",
+    quantumProtection: "200"
+  });
+  const [totalPrice, setTotalPrice] = useState("100");  // Base price
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [step, setStep] = useState(1);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+
+    // Load feature pricing
+    const pricing = getTokenFeaturePricing();
+    setFeaturePricing(pricing);
+  }, [user, navigate]);
+
+  // Calculate total price whenever features change
+  useEffect(() => {
+    let price = 100; // Base token creation fee
+    
+    if (mintable) price += parseFloat(featurePricing.mintable);
+    if (mutableInfo) price += parseFloat(featurePricing.mutableInfo);
+    if (renounceOwnership) price += parseFloat(featurePricing.renounceOwnership);
+    if (quantumProtection) price += parseFloat(featurePricing.quantumProtection);
+    
+    setTotalPrice(price.toString());
+  }, [mintable, mutableInfo, renounceOwnership, quantumProtection, featurePricing]);
+
+  const handleCreateToken = async () => {
+    if (!name || !symbol || !supply) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      // Simulate token creation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a random token ID
+      const tokenId = "tk" + Math.random().toString(36).substring(2, 12);
+      
+      // Create token object
+      const token = {
+        id: tokenId,
+        name,
+        symbol,
+        decimals: parseInt(decimals),
+        totalSupply: supply,
+        price: parseFloat(initialPrice),
+        marketCap: parseFloat(initialPrice) * parseFloat(supply),
+        description,
+        network,
+        features: {
+          mintable,
+          mutableInfo,
+          renounceOwnership,
+          quantumProtection,
+        },
+        createdAt: new Date().toISOString(),
+        creator: user?.id || "unknown",
+      };
+      
+      // Save to local storage
+      saveCreatedToken(token);
+      
+      // Add to pending tokens if admin approval is required
+      const pendingTokens = localStorage.getItem('pendingTokens');
+      if (pendingTokens) {
+        const tokens = JSON.parse(pendingTokens);
+        tokens.push({
+          id: tokenId,
+          name,
+          symbol,
+          network: network === "netz-mainnet" ? "NETZ Mainnet" : network,
+          totalSupply: supply,
+          initialPrice: parseFloat(initialPrice),
+          marketCap: parseFloat(initialPrice) * parseFloat(supply),
+          creator: user?.id || "unknown",
+          createdAt: new Date().toLocaleDateString(),
+          logo: "https://via.placeholder.com/64",
+        });
+        localStorage.setItem('pendingTokens', JSON.stringify(tokens));
+      }
+      
+      toast({
+        title: "Token Created",
+        description: "Your token has been submitted for approval",
+      });
+      
+      // Navigate to token page
+      setTimeout(() => {
+        navigate(`/token/${tokenId}`);
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create token. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Token creation error:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  // Calculate total feature cost
-  const calculateFeatureCost = () => {
-    let featureCost = 0;
-    if (mintable) featureCost += featurePricing.mintable;
-    if (mutableInfo) featureCost += featurePricing.mutableInfo;
-    if (ownershipRenounced) featureCost += featurePricing.ownershipRenounced;
-    if (quantumProtection) featureCost += featurePricing.quantumProtection;
-    return featureCost;
-  };
-
-  // Calculate total token cost
-  const calculateTotalTokenCost = () => {
-    const basePrice = parseFloat(price) || 0;
-    const featureCost = calculateFeatureCost();
-    return basePrice + featureCost;
-  };
-
-  // Redirect to wallet if not unlocked
-  if (!isUnlocked || !wallet) {
-    navigate("/wallet");
-    return null;
-  }
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      // Validate file type
-      if (!file.type.match(/image\/(jpeg|png)/)) {
+  const nextStep = () => {
+    if (step === 1) {
+      if (!name || !symbol || !supply) {
         toast({
-          title: "Invalid file type",
-          description: "Please upload a JPG or PNG file",
+          title: "Missing Information",
+          description: "Please fill in all required fields",
           variant: "destructive",
         });
         return;
       }
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-      setLogoFile(file);
     }
+    setStep(step + 1);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      if (!logoFile) {
-        throw new Error("Logo image is required");
-      }
-      
-      if (!tokenName || !tokenSymbol || !totalSupply || !price) {
-        throw new Error("All fields are required");
-      }
-      
-      if (!quantumProtection) {
-        throw new Error("Quantum Protection must be enabled for token creation");
-      }
-      
-      // Mock token creation process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const tokenAddress = "qv" + Math.random().toString(36).substring(2, 12) + tokenSymbol.toLowerCase();
-      
-      toast({
-        title: "Token Created Successfully",
-        description: `Your ${tokenName} token has been created on the Quantum Network`,
-      });
-      
-      // Add token to wallet
-      navigate(`/token/${tokenAddress}`);
-    } catch (error) {
-      toast({
-        title: "Token Creation Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const prevStep = () => {
+    setStep(step - 1);
   };
 
-  return (
-    <div className="container max-w-2xl mx-auto px-4 py-12">
-      <Card className="border-2 border-quantum/30">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Shield className="mr-2 h-5 w-5 text-quantum" />
-            Create New Token
-          </CardTitle>
-          <CardDescription>
-            Create your own quantum-protected token on the NETZ blockchain
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6">
-            {/* Logo Upload */}
-            <div className="space-y-2">
-              <Label htmlFor="logo">Token Logo (256x256 JPG/PNG)</Label>
-              <div className="flex items-center space-x-4">
-                <div 
-                  className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="Token Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-muted-foreground text-xs text-center">Upload Logo</span>
-                  )}
-                </div>
-                <Input
-                  ref={fileInputRef}
-                  id="logo"
-                  type="file"
-                  className="hidden"
-                  accept="image/jpeg, image/png"
-                  onChange={handleLogoChange}
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {logoFile ? "Change Logo" : "Upload Logo"}
-                </Button>
-              </div>
-              {logoFile && (
-                <p className="text-xs text-muted-foreground">{logoFile.name}</p>
-              )}
-            </div>
-            
-            {/* Token Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tokenName">Token Name</Label>
-                <Input
-                  id="tokenName"
-                  value={tokenName}
-                  onChange={(e) => setTokenName(e.target.value)}
-                  placeholder="e.g. Quantum Token"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tokenSymbol">Symbol</Label>
-                <Input
-                  id="tokenSymbol"
-                  value={tokenSymbol}
-                  onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
-                  placeholder="e.g. QTM"
-                  maxLength={5}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="network">Network</Label>
-                <Select 
-                  value={network}
-                  onValueChange={setNetwork}
-                >
-                  <SelectTrigger id="network">
-                    <SelectValue placeholder="Select Network" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Quantum Network">Quantum Network</SelectItem>
-                    <SelectItem value="NETZ Mainnet">NETZ Mainnet</SelectItem>
-                    <SelectItem value="NETZ Testnet">NETZ Testnet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="totalSupply">Total Supply</Label>
-                <Input
-                  id="totalSupply"
-                  type="number"
-                  value={totalSupply}
-                  onChange={(e) => setTotalSupply(e.target.value)}
-                  placeholder="e.g. 1000000"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Initial Price (USD)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.0000001"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="e.g. 0.01"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="block mb-2">Market Cap</Label>
-                <div className="h-10 px-3 py-2 bg-muted/50 rounded-md border flex items-center">
-                  ${totalSupply && price ? (Number(totalSupply) * Number(price)).toLocaleString() : "0.00"}
-                </div>
-              </div>
-            </div>
-            
-            {/* Token Options with Pricing */}
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="mintable" className="cursor-pointer flex items-center">
-                    <span>Mintable</span>
-                    <span className="ml-2 text-xs text-muted-foreground">(Can create more tokens later)</span>
-                  </Label>
-                  <p className="text-xs text-quantum mt-1">+${featurePricing.mintable.toFixed(2)} per token</p>
-                </div>
-                <Switch
-                  id="mintable"
-                  checked={mintable}
-                  onCheckedChange={setMintable}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="mutableInfo" className="cursor-pointer flex items-center">
-                    <span>Mutable Info</span>
-                    <span className="ml-2 text-xs text-muted-foreground">(Can change token info later)</span>
-                  </Label>
-                  <p className="text-xs text-quantum mt-1">+${featurePricing.mutableInfo.toFixed(2)} per token</p>
-                </div>
-                <Switch
-                  id="mutableInfo"
-                  checked={mutableInfo}
-                  onCheckedChange={setMutableInfo}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="ownershipRenounced" className="cursor-pointer flex items-center">
-                    <span>Renounce Ownership</span>
-                    <span className="ml-2 text-xs text-muted-foreground">(Irreversibly give up control)</span>
-                  </Label>
-                  <p className="text-xs text-green-500 mt-1">-${Math.abs(featurePricing.ownershipRenounced).toFixed(2)} discount per token</p>
-                </div>
-                <Switch
-                  id="ownershipRenounced"
-                  checked={ownershipRenounced}
-                  onCheckedChange={setOwnershipRenounced}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="quantumProtection" className="cursor-pointer flex items-center">
-                    <span>Quantum Protection</span>
-                    <span className="ml-2 text-xs text-muted-foreground">(Required for token security)</span>
-                  </Label>
-                  <p className="text-xs text-quantum mt-1">+${featurePricing.quantumProtection.toFixed(2)} per token</p>
-                </div>
-                <Switch
-                  id="quantumProtection"
-                  checked={quantumProtection}
-                  onCheckedChange={setQuantumProtection}
-                />
-              </div>
-            </div>
-            
-            {/* Authorities */}
-            {!ownershipRenounced && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="updateAuthority">Update Authority</Label>
-                  <Input
-                    id="updateAuthority"
-                    value={updateAuthority}
-                    onChange={(e) => setUpdateAuthority(e.target.value)}
-                    placeholder="Enter wallet address or leave empty"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="freezeAuthority">Freeze Authority</Label>
-                  <Input
-                    id="freezeAuthority"
-                    value={freezeAuthority}
-                    onChange={(e) => setFreezeAuthority(e.target.value)}
-                    placeholder="Enter wallet address or leave empty"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Price Summary */}
-            <div className="bg-muted p-4 rounded-md">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm">Base token price:</span>
-                <span className="font-medium">${price || "0.00"}</span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm">Feature additions:</span>
-                <span className="font-medium">${calculateFeatureCost().toFixed(2)}</span>
-              </div>
-              <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
-                <span className="font-medium">Final token price:</span>
-                <span className="font-bold text-quantum">${calculateTotalTokenCost().toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-muted rounded-md">
-              <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> Your token needs to reach a market cap of at least $100,000 to become publicly tradable and visible in other wallets.
-              </p>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              type="submit" 
-              className="w-full bg-quantum hover:bg-quantum-dark"
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating Token..." : "Create Token"}
+  if (!walletConnected) {
+    return (
+      <div className="container max-w-xl mx-auto px-4 py-16 text-center">
+        <Card>
+          <CardHeader>
+            <CardTitle>Wallet Connection Required</CardTitle>
+            <CardDescription>
+              Please connect your wallet before creating a token
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center">
+            <Button onClick={() => navigate("/wallet")} className="bg-quantum hover:bg-quantum-dark">
+              Connect Wallet
             </Button>
           </CardFooter>
-        </form>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container max-w-3xl mx-auto px-4 py-12">
+      <Card className="border-2 border-quantum/30">
+        <CardHeader>
+          <CardTitle className="text-2xl">Create New Token</CardTitle>
+          <CardDescription>
+            Create your own custom token on the NETZ blockchain
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <Tabs value={`step${step}`} className="mb-6">
+            <TabsList className="w-full">
+              <TabsTrigger value="step1" className="flex-1" disabled={step !== 1}>
+                1. Basic Info
+              </TabsTrigger>
+              <TabsTrigger value="step2" className="flex-1" disabled={step !== 2}>
+                2. Features
+              </TabsTrigger>
+              <TabsTrigger value="step3" className="flex-1" disabled={step !== 3}>
+                3. Review
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="step1" className="space-y-6 mt-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Token Name <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="name"
+                      placeholder="e.g. My Awesome Token"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="symbol">Token Symbol <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="symbol"
+                      placeholder="e.g. MAT"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                      maxLength={8}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="decimals">Decimals</Label>
+                    <Select defaultValue="18" onValueChange={(value) => setDecimals(value)}>
+                      <SelectTrigger id="decimals">
+                        <SelectValue placeholder="Select decimals" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0 (Whole numbers only)</SelectItem>
+                        <SelectItem value="2">2 (Cents precision)</SelectItem>
+                        <SelectItem value="6">6 (Micro precision)</SelectItem>
+                        <SelectItem value="8">8 (Satoshi precision)</SelectItem>
+                        <SelectItem value="18">18 (Standard precision)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="network">Network</Label>
+                    <Select defaultValue="netz-mainnet" onValueChange={(value) => setNetwork(value)}>
+                      <SelectTrigger id="network">
+                        <SelectValue placeholder="Select network" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="netz-mainnet">NETZ Mainnet</SelectItem>
+                        <SelectItem value="netz-testnet">NETZ Testnet</SelectItem>
+                        <SelectItem value="quantum-network">Quantum Network</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="supply">Total Supply <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="supply"
+                      type="number"
+                      min="1"
+                      placeholder="Enter total supply"
+                      value={supply}
+                      onChange={(e) => setSupply(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="initialPrice">Initial Price (USD)</Label>
+                    <Input
+                      id="initialPrice"
+                      type="number"
+                      min="0.0000001"
+                      step="0.0001"
+                      placeholder="Enter initial price"
+                      value={initialPrice}
+                      onChange={(e) => setInitialPrice(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your token (optional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+                
+                <div className="pt-4 flex justify-end">
+                  <Button 
+                    onClick={nextStep} 
+                    className="bg-quantum hover:bg-quantum-dark"
+                  >
+                    Next Step
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="step2" className="space-y-6 mt-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-4 border rounded-md">
+                  <div>
+                    <h3 className="font-medium">Mintable</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Allow creating more tokens after initial creation
+                    </p>
+                    <p className="text-sm font-medium text-quantum">
+                      Price: {featurePricing.mintable} NETZ
+                    </p>
+                  </div>
+                  <Switch
+                    checked={mintable}
+                    onCheckedChange={setMintable}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between p-4 border rounded-md">
+                  <div>
+                    <h3 className="font-medium">Mutable Info</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Allow changing token information after creation
+                    </p>
+                    <p className="text-sm font-medium text-quantum">
+                      Price: {featurePricing.mutableInfo} NETZ
+                    </p>
+                  </div>
+                  <Switch
+                    checked={mutableInfo}
+                    onCheckedChange={setMutableInfo}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between p-4 border rounded-md">
+                  <div>
+                    <h3 className="font-medium">Renounce Ownership</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Allow renouncing token ownership permanently
+                    </p>
+                    <p className="text-sm font-medium text-quantum">
+                      Price: {featurePricing.renounceOwnership} NETZ
+                    </p>
+                  </div>
+                  <Switch
+                    checked={renounceOwnership}
+                    onCheckedChange={setRenounceOwnership}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between p-4 border rounded-md">
+                  <div>
+                    <h3 className="font-medium">Quantum Protection</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Add post-quantum cryptography for enhanced security
+                    </p>
+                    <p className="text-sm font-medium text-quantum">
+                      Price: {featurePricing.quantumProtection} NETZ
+                    </p>
+                  </div>
+                  <Switch
+                    checked={quantumProtection}
+                    onCheckedChange={setQuantumProtection}
+                  />
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={prevStep}
+                  >
+                    Previous Step
+                  </Button>
+                  <Button
+                    onClick={nextStep}
+                    className="bg-quantum hover:bg-quantum-dark"
+                  >
+                    Next Step
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="step3" className="mt-6">
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Token Name:</p>
+                    <p className="font-medium">{name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Symbol:</p>
+                    <p className="font-medium">{symbol}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Decimals:</p>
+                    <p className="font-medium">{decimals}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Network:</p>
+                    <p className="font-medium">
+                      {network === "netz-mainnet" ? "NETZ Mainnet" :
+                        network === "netz-testnet" ? "NETZ Testnet" : "Quantum Network"}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Total Supply:</p>
+                    <p className="font-medium">{parseInt(supply).toLocaleString()} {symbol}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Initial Price:</p>
+                    <p className="font-medium">${parseFloat(initialPrice).toFixed(6)} USD</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <h3 className="font-medium">Selected Features:</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-center">
+                    <div className={`w-4 h-4 rounded-full mr-2 ${mintable ? "bg-green-500" : "bg-red-500"}`}></div>
+                    <span>Mintable</span>
+                  </li>
+                  <li className="flex items-center">
+                    <div className={`w-4 h-4 rounded-full mr-2 ${mutableInfo ? "bg-green-500" : "bg-red-500"}`}></div>
+                    <span>Mutable Info</span>
+                  </li>
+                  <li className="flex items-center">
+                    <div className={`w-4 h-4 rounded-full mr-2 ${renounceOwnership ? "bg-green-500" : "bg-red-500"}`}></div>
+                    <span>Renounce Ownership</span>
+                  </li>
+                  <li className="flex items-center">
+                    <div className={`w-4 h-4 rounded-full mr-2 ${quantumProtection ? "bg-green-500" : "bg-red-500"}`}></div>
+                    <span>Quantum Protection</span>
+                  </li>
+                </ul>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">Base Creation Fee:</span>
+                    <span>100 NETZ</span>
+                  </div>
+                  {mintable && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span>Mintable Feature:</span>
+                      <span>{featurePricing.mintable} NETZ</span>
+                    </div>
+                  )}
+                  {mutableInfo && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span>Mutable Info Feature:</span>
+                      <span>{featurePricing.mutableInfo} NETZ</span>
+                    </div>
+                  )}
+                  {renounceOwnership && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span>Renounce Ownership Feature:</span>
+                      <span>{featurePricing.renounceOwnership} NETZ</span>
+                    </div>
+                  )}
+                  {quantumProtection && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span>Quantum Protection Feature:</span>
+                      <span>{featurePricing.quantumProtection} NETZ</span>
+                    </div>
+                  )}
+                  <Separator className="my-2" />
+                  <div className="flex items-center justify-between font-medium">
+                    <span>Total Cost:</span>
+                    <span className="text-quantum">{totalPrice} NETZ</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={prevStep}
+                  >
+                    Previous Step
+                  </Button>
+                  <Button
+                    onClick={handleCreateToken}
+                    className="bg-quantum hover:bg-quantum-dark"
+                    disabled={isCreating}
+                  >
+                    {isCreating ? 
+                      "Creating..." : 
+                      <>
+                        <Coins className="mr-2 h-5 w-5" />
+                        Create Token
+                      </>
+                    }
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,17 +10,19 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
-import { Shield, Ban } from "lucide-react";
+import { Shield, Ban, Coins, Settings } from "lucide-react";
 import { 
   banIP, 
   banLocation, 
   getBannedIPs, 
   getBannedLocations, 
   removeIPBan, 
-  removeLocationBan 
+  removeLocationBan,
+  saveTokenFeaturePricing
 } from "@/lib/wallet/wallet-storage";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Link } from "react-router-dom";
 
 interface PendingToken {
   id: string;
@@ -83,6 +86,12 @@ const AdminPanel = () => {
   const [totalMinted, setTotalMinted] = useState("0");
   const maxSupply = "9000000000";
 
+  // Token feature pricing
+  const [mintablePrice, setMintablePrice] = useState("50");
+  const [mutableInfoPrice, setMutableInfoPrice] = useState("75");
+  const [renounceOwnershipPrice, setRenounceOwnershipPrice] = useState("25");
+  const [quantumProtectionPrice, setQuantumProtectionPrice] = useState("200");
+
   const [bannedIPs, setBannedIPs] = useState<BannedIP[]>([]);
   const [bannedLocations, setBannedLocations] = useState<BannedLocation[]>([]);
   const [showAddIPBan, setShowAddIPBan] = useState(false);
@@ -103,55 +112,71 @@ const AdminPanel = () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const mockPendingTokens: PendingToken[] = [
-          {
-            id: "pt1",
-            name: "Super Token",
-            symbol: "STKN",
-            network: "NETZ Mainnet",
-            totalSupply: "1,000,000",
-            initialPrice: 0.05,
-            marketCap: 50000,
-            creator: "qv1a2b3c4d5e6f7g8h9i0j",
-            createdAt: "2025-04-20",
-            logo: "https://via.placeholder.com/64",
-          },
-          {
-            id: "pt2",
-            name: "Quantum Finance",
-            symbol: "QFIN",
-            network: "Quantum Network",
-            totalSupply: "500,000",
-            initialPrice: 0.25,
-            marketCap: 125000,
-            creator: "qv2b3c4d5e6f7g8h9i0j1k",
-            createdAt: "2025-04-19",
-            logo: "https://via.placeholder.com/64",
-          },
-        ];
+        // Load stored token feature pricing if available
+        const storedPrices = localStorage.getItem('tokenFeaturePricing');
+        if (storedPrices) {
+          const prices = JSON.parse(storedPrices);
+          setMintablePrice(prices.mintable || "50");
+          setMutableInfoPrice(prices.mutableInfo || "75");
+          setRenounceOwnershipPrice(prices.renounceOwnership || "25");
+          setQuantumProtectionPrice(prices.quantumProtection || "200");
+        }
         
-        const mockTokenMetrics: TokenMetrics[] = [
-          {
-            id: "tm1",
-            name: "NETZ",
-            symbol: "NETZ",
-            price: 1.25,
-            marketCap: 11250000000,
-            holders: 15420,
-            transactions: 124589,
-            volume24h: 12500000,
-          },
-          {
-            id: "tm2",
-            name: "Quantum Token",
-            symbol: "QTM",
-            price: 0.125,
-            marketCap: 125000,
-            holders: 42,
-            transactions: 156,
-            volume24h: 350000,
-          },
-        ];
+        const storedPendingTokens = localStorage.getItem('pendingTokens');
+        const mockPendingTokens: PendingToken[] = storedPendingTokens 
+          ? JSON.parse(storedPendingTokens) 
+          : [
+            {
+              id: "pt1",
+              name: "Super Token",
+              symbol: "STKN",
+              network: "NETZ Mainnet",
+              totalSupply: "1,000,000",
+              initialPrice: 0.05,
+              marketCap: 50000,
+              creator: "qv1a2b3c4d5e6f7g8h9i0j",
+              createdAt: "2025-04-20",
+              logo: "https://via.placeholder.com/64",
+            },
+            {
+              id: "pt2",
+              name: "Quantum Finance",
+              symbol: "QFIN",
+              network: "Quantum Network",
+              totalSupply: "500,000",
+              initialPrice: 0.25,
+              marketCap: 125000,
+              creator: "qv2b3c4d5e6f7g8h9i0j1k",
+              createdAt: "2025-04-19",
+              logo: "https://via.placeholder.com/64",
+            },
+          ];
+        
+        const storedTokenMetrics = localStorage.getItem('tokenMetrics');
+        const mockTokenMetrics: TokenMetrics[] = storedTokenMetrics
+          ? JSON.parse(storedTokenMetrics)
+          : [
+            {
+              id: "tm1",
+              name: "NETZ",
+              symbol: "NETZ",
+              price: 1.25,
+              marketCap: 11250000000,
+              holders: 15420,
+              transactions: 124589,
+              volume24h: 12500000,
+            },
+            {
+              id: "tm2",
+              name: "Quantum Token",
+              symbol: "QTM",
+              price: 0.125,
+              marketCap: 125000,
+              holders: 42,
+              transactions: 156,
+              volume24h: 350000,
+            },
+          ];
         
         const ips = getBannedIPs();
         const locations = getBannedLocations();
@@ -161,6 +186,14 @@ const AdminPanel = () => {
         setBannedAddresses([]);
         setBannedIPs(ips);
         setBannedLocations(locations);
+
+        // Save initial data if not yet available
+        if (!storedPendingTokens) {
+          localStorage.setItem('pendingTokens', JSON.stringify(mockPendingTokens));
+        }
+        if (!storedTokenMetrics) {
+          localStorage.setItem('tokenMetrics', JSON.stringify(mockTokenMetrics));
+        }
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
       } finally {
@@ -172,17 +205,79 @@ const AdminPanel = () => {
   }, [user, isAdmin, navigate]);
   
   const handleApproveToken = (tokenId: string) => {
-    setPendingTokens(prev => prev.filter(token => token.id !== tokenId));
+    // Find the token to approve
+    const tokenToApprove = pendingTokens.find(token => token.id === tokenId);
+    if (!tokenToApprove) return;
+    
+    // Remove from pending tokens
+    const updatedPendingTokens = pendingTokens.filter(token => token.id !== tokenId);
+    setPendingTokens(updatedPendingTokens);
+    localStorage.setItem('pendingTokens', JSON.stringify(updatedPendingTokens));
+    
+    // Add to approved tokens
+    const newApprovedToken: TokenMetrics = {
+      id: tokenToApprove.id,
+      name: tokenToApprove.name,
+      symbol: tokenToApprove.symbol,
+      price: tokenToApprove.initialPrice,
+      marketCap: tokenToApprove.marketCap,
+      holders: 1, // Starting with creator
+      transactions: 1, // Creation transaction
+      volume24h: 0,
+    };
+    
+    const updatedTokenMetrics = [...tokenMetrics, newApprovedToken];
+    setTokenMetrics(updatedTokenMetrics);
+    localStorage.setItem('tokenMetrics', JSON.stringify(updatedTokenMetrics));
+    
+    toast({
+      title: "Token Approved",
+      description: `${tokenToApprove.name} (${tokenToApprove.symbol}) has been approved and listed.`,
+    });
   };
   
   const handleRejectToken = (tokenId: string) => {
-    setPendingTokens(prev => prev.filter(token => token.id !== tokenId));
+    // Find the token to reject
+    const tokenToReject = pendingTokens.find(token => token.id === tokenId);
+    if (!tokenToReject) return;
+    
+    // Remove from pending tokens
+    const updatedPendingTokens = pendingTokens.filter(token => token.id !== tokenId);
+    setPendingTokens(updatedPendingTokens);
+    localStorage.setItem('pendingTokens', JSON.stringify(updatedPendingTokens));
+    
+    toast({
+      title: "Token Rejected",
+      description: `${tokenToReject.name} (${tokenToReject.symbol}) has been rejected.`,
+      variant: "destructive",
+    });
   };
   
   const handleSaveSettings = () => {
-    console.log("Settings saved:", {
-      mintPrice,
-      tokenCreationFee,
+    // Save mint price and token creation fee
+    localStorage.setItem('mintPrice', mintPrice);
+    localStorage.setItem('tokenCreationFee', tokenCreationFee);
+    
+    toast({
+      title: "Settings Saved",
+      description: "System settings have been updated.",
+    });
+  };
+
+  const handleSaveTokenPricing = () => {
+    // Save token feature pricing
+    const pricing = {
+      mintable: mintablePrice,
+      mutableInfo: mutableInfoPrice,
+      renounceOwnership: renounceOwnershipPrice,
+      quantumProtection: quantumProtectionPrice,
+    };
+    
+    saveTokenFeaturePricing(pricing);
+    
+    toast({
+      title: "Pricing Saved",
+      description: "Token feature pricing has been updated.",
     });
   };
   
@@ -301,6 +396,7 @@ const AdminPanel = () => {
           <TabsTrigger value="pending" className="flex-1">Pending Tokens</TabsTrigger>
           <TabsTrigger value="metrics" className="flex-1">Token Metrics</TabsTrigger>
           <TabsTrigger value="settings" className="flex-1">System Settings</TabsTrigger>
+          <TabsTrigger value="pricing" className="flex-1">Feature Pricing</TabsTrigger>
           <TabsTrigger value="security" className="flex-1">Security</TabsTrigger>
         </TabsList>
         
@@ -599,6 +695,102 @@ const AdminPanel = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="pricing">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                <div>
+                  <CardTitle>Token Feature Pricing</CardTitle>
+                  <CardDescription>
+                    Set prices for optional token features
+                  </CardDescription>
+                </div>
+                <Link to="/token-price-config">
+                  <Button variant="outline" className="mt-4 md:mt-0">
+                    <Settings className="mr-2 h-4 w-4" /> Advanced Pricing
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mintablePrice">Mintable Feature (NETZ)</Label>
+                    <Input
+                      id="mintablePrice"
+                      type="number"
+                      value={mintablePrice}
+                      onChange={(e) => setMintablePrice(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Price to enable minting additional tokens after creation
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="mutableInfoPrice">Mutable Info Feature (NETZ)</Label>
+                    <Input
+                      id="mutableInfoPrice"
+                      type="number"
+                      value={mutableInfoPrice}
+                      onChange={(e) => setMutableInfoPrice(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Price to allow changing token metadata after creation
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="renounceOwnershipPrice">Renounce Ownership Feature (NETZ)</Label>
+                    <Input
+                      id="renounceOwnershipPrice"
+                      type="number"
+                      value={renounceOwnershipPrice}
+                      onChange={(e) => setRenounceOwnershipPrice(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Price to enable ownership renunciation
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="quantumProtectionPrice">Quantum Protection Feature (NETZ)</Label>
+                    <Input
+                      id="quantumProtectionPrice"
+                      type="number"
+                      value={quantumProtectionPrice}
+                      onChange={(e) => setQuantumProtectionPrice(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Price for quantum-proof security features
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <Button 
+                  className="w-full bg-quantum hover:bg-quantum-dark"
+                  onClick={handleSaveTokenPricing}
+                >
+                  <Coins className="mr-2 h-5 w-5" /> Save Feature Pricing
+                </Button>
+              </div>
+              
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="text-sm font-medium mb-2">Feature Pricing Notes:</h3>
+                <p className="text-sm text-muted-foreground">
+                  These prices apply to all new token creation requests. Changes will not affect previously created tokens.
+                  The Advanced Pricing page allows for more granular configuration options.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="security">

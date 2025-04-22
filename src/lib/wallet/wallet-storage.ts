@@ -402,3 +402,39 @@ export function removeLocationBan(location: string): boolean {
     return false;
   }
 }
+
+export function saveTokenFeaturePricing(pricing: {
+  mintable: string;
+  mutableInfo: string;
+  renounceOwnership: string;
+  quantumProtection: string;
+  [key: string]: string;
+}) {
+  localStorage.setItem('tokenFeaturePricing', JSON.stringify(pricing));
+}
+
+export function getTokenFeaturePricing() {
+  const pricing = localStorage.getItem('tokenFeaturePricing');
+  if (pricing) {
+    return JSON.parse(pricing);
+  }
+  
+  // Default pricing
+  return {
+    mintable: "50",
+    mutableInfo: "75",
+    renounceOwnership: "25",
+    quantumProtection: "200"
+  };
+}
+
+export function saveCreatedToken(token: any) {
+  const tokens = getCreatedTokens();
+  tokens.push(token);
+  localStorage.setItem('createdTokens', JSON.stringify(tokens));
+}
+
+export function getCreatedTokens() {
+  const tokens = localStorage.getItem('createdTokens');
+  return tokens ? JSON.parse(tokens) : [];
+}

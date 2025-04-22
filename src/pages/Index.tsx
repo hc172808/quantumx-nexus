@@ -1,9 +1,42 @@
 
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Shield } from "lucide-react";
+import { Shield, Coins } from "lucide-react";
+import { getCreatedTokens } from "@/lib/wallet/wallet-storage";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface Token {
+  id: string;
+  name: string;
+  symbol: string;
+  price: number;
+  totalSupply: string;
+  marketCap: number;
+  logo?: string;
+}
 
 const Index = () => {
+  const [tokens, setTokens] = useState<Token[]>([]);
+
+  useEffect(() => {
+    // Load tokens from storage
+    const createdTokens = getCreatedTokens();
+    const storedTokenMetrics = localStorage.getItem('tokenMetrics');
+    
+    if (storedTokenMetrics) {
+      try {
+        const tokenMetrics = JSON.parse(storedTokenMetrics);
+        setTokens([...createdTokens, ...tokenMetrics]);
+      } catch (error) {
+        console.error("Error parsing token metrics:", error);
+        setTokens(createdTokens);
+      }
+    } else {
+      setTokens(createdTokens);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -38,8 +71,58 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Featured Tokens Section */}
+      {tokens.length > 0 && (
+        <section className="py-16 bg-muted">
+          <div className="container px-4 mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">Featured Tokens</h2>
+              <Link to="/marketplace">
+                <Button variant="outline">View All</Button>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {tokens.slice(0, 8).map((token) => (
+                <Link to={`/token/${token.id}`} key={token.id}>
+                  <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+                    <CardContent className="p-4 flex flex-col justify-between h-full">
+                      <div className="flex items-center mb-4">
+                        <div className="w-10 h-10 rounded-full bg-quantum/20 flex items-center justify-center mr-3">
+                          {token.logo ? (
+                            <img src={token.logo} alt={token.name} className="w-8 h-8 rounded-full" />
+                          ) : (
+                            <Coins className="h-5 w-5 text-quantum" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{token.name}</h3>
+                          <p className="text-sm text-muted-foreground">{token.symbol}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full h-[1px] bg-border my-2"></div>
+                      
+                      <div>
+                        <div className="grid grid-cols-2 gap-1 text-sm">
+                          <p className="text-muted-foreground">Price:</p>
+                          <p className="text-right font-medium">${token.price?.toFixed(4) || "0.0000"}</p>
+                          
+                          <p className="text-muted-foreground">Market Cap:</p>
+                          <p className="text-right font-medium">${token.marketCap?.toLocaleString() || "0"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Features Section */}
-      <section className="py-16 bg-muted">
+      <section className="py-16">
         <div className="container px-4 mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Key Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
