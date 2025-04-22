@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,9 @@ import AdminPanel from "./pages/AdminPanel";
 import ChangePassword from "./pages/ChangePassword";
 import ForgotPassword from "./pages/ForgotPassword";
 import WhatsAppConfig from "./pages/WhatsAppConfig";
+import WalletRecoveryGuide from "./pages/WalletRecoveryGuide";
+import WalletConfigGuide from "./pages/WalletConfigGuide";
+import NodeConfigGuide from "./pages/NodeConfigGuide";
 
 const queryClient = new QueryClient();
 
@@ -48,7 +50,9 @@ const App = () => (
                 <Route path="/change-password" element={<Layout><ChangePassword /></Layout>} />
                 <Route path="/forgot-password" element={<Layout><ForgotPassword /></Layout>} />
                 <Route path="/whatsapp-config" element={<Layout><WhatsAppConfig /></Layout>} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="/wallet-recovery-guide" element={<Layout><WalletRecoveryGuide /></Layout>} />
+                <Route path="/wallet-config-guide" element={<Layout><WalletConfigGuide /></Layout>} />
+                <Route path="/node-config-guide" element={<Layout><NodeConfigGuide /></Layout>} />
                 <Route path="*" element={<Layout><NotFound /></Layout>} />
               </Routes>
             </BrowserRouter>

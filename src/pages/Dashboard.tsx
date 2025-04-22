@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Lock, SlidersHorizontal } from "lucide-react";
+import { Shield, Lock, SlidersHorizontal, Key, Book } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -16,14 +16,12 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [selectedLockout, setSelectedLockout] = useState<string>("default");
   
-  // Redirect to wallet page if not unlocked
   useEffect(() => {
     if (!isUnlocked) {
       navigate("/wallet");
     }
   }, [isUnlocked, navigate]);
 
-  // Calculate total portfolio value
   const totalValue = tokens.reduce(
     (total, token) => total + parseFloat(token.balance) * token.value,
     0
@@ -32,7 +30,6 @@ const Dashboard = () => {
   const handleLockoutChange = (value: string) => {
     setSelectedLockout(value);
     
-    // Convert string to seconds
     let lockoutSeconds = 0;
     
     switch(value) {
@@ -49,7 +46,7 @@ const Dashboard = () => {
         lockoutSeconds = 300;
         break;
       case "default":
-        lockoutSeconds = 0; // Use system default
+        lockoutSeconds = 0;
         break;
     }
     
@@ -64,7 +61,7 @@ const Dashboard = () => {
   };
 
   if (!isUnlocked) {
-    return null; // Will redirect
+    return null;
   }
 
   return (
@@ -75,10 +72,10 @@ const Dashboard = () => {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="security">Security Settings</TabsTrigger>
+          <TabsTrigger value="guides">Guides & Recovery</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
-          {/* Portfolio Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="pb-2">
@@ -106,7 +103,6 @@ const Dashboard = () => {
             </Card>
           </div>
           
-          {/* Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Card>
@@ -234,6 +230,58 @@ const Dashboard = () => {
                       <input type="checkbox" id="notify-security" className="h-4 w-4" defaultChecked />
                       <Label htmlFor="notify-security">Security alerts</Label>
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="guides">
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Book className="mr-2 h-5 w-5" />
+                  Guides & Recovery Information
+                </CardTitle>
+                <CardDescription>
+                  Access important wallet recovery and configuration guides
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="bg-muted p-4 rounded-md flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Recovery Phrase Guide</h4>
+                      <p className="text-sm text-muted-foreground">Learn how to safely store and use your recovery phrase</p>
+                    </div>
+                    <Button variant="outline" onClick={() => navigate("/wallet-recovery-guide")}>
+                      <Key className="mr-2 h-4 w-4" />
+                      View Guide
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-muted p-4 rounded-md flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Wallet Configuration</h4>
+                      <p className="text-sm text-muted-foreground">Setup and manage your wallet settings</p>
+                    </div>
+                    <Button variant="outline" onClick={() => navigate("/wallet-config-guide")}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      View Guide
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-muted p-4 rounded-md flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Node Configuration</h4>
+                      <p className="text-sm text-muted-foreground">Learn about main and slave node setup</p>
+                    </div>
+                    <Button variant="outline" onClick={() => navigate("/node-config-guide")}>
+                      <SlidersHorizontal className="mr-2 h-4 w-4" />
+                      View Guide
+                    </Button>
                   </div>
                 </div>
               </CardContent>
