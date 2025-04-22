@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,9 +23,9 @@ import AdminPanel from "./pages/AdminPanel";
 import ChangePassword from "./pages/ChangePassword";
 import ForgotPassword from "./pages/ForgotPassword";
 import WhatsAppConfig from "./pages/WhatsAppConfig";
-import WalletRecoveryGuide from "./pages/WalletRecoveryGuide";
-import WalletConfigGuide from "./pages/WalletConfigGuide";
-import NodeConfigGuide from "./pages/NodeConfigGuide";
+import WalletRecoveryGuide from "./pages/guides/WalletRecoveryGuide";
+import WalletConfigGuide from "./pages/guides/WalletConfigGuide";
+import NodeConfigGuide from "./pages/guides/NodeConfigGuide";
 
 const queryClient = new QueryClient();
 
