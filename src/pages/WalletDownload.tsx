@@ -2,50 +2,51 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Download, Smartphone, Computer, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { Download, Laptop, Smartphone, Terminal, Shield, Zap, Clock, Settings, ArrowRight } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import logoQtm from "@/assets/tokens/qtm.svg";
 
 const WalletDownload = () => {
   const { toast } = useToast();
-  const [downloadStarted, setDownloadStarted] = useState<{[key: string]: boolean}>({
-    windows: false,
-    mac: false,
-    linux: false,
-    android: false,
-    ios: false
-  });
+  const [downloading, setDownloading] = useState(false);
   
   const handleDownload = (platform: string) => {
-    setDownloadStarted(prev => ({ ...prev, [platform]: true }));
+    setDownloading(true);
     
     toast({
-      title: "Download Started",
-      description: `The ${platform.charAt(0).toUpperCase() + platform.slice(1)} wallet is downloading.`,
+      title: `Downloading Quantum Wallet for ${platform}`,
+      description: "Your download will start in a moment."
     });
     
     // Simulate download
     setTimeout(() => {
-      const a = document.createElement('a');
-      a.href = '#';
-      a.download = `quantum-wallet-${platform}.zip`;
-      a.click();
+      setDownloading(false);
       
-      // Reset the button state after download
-      setTimeout(() => {
-        setDownloadStarted(prev => ({ ...prev, [platform]: false }));
-      }, 1000);
-    }, 1500);
+      toast({
+        title: "Download Complete",
+        description: "Please check your downloads folder and follow the installation instructions."
+      });
+    }, 2000);
   };
-  
+
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Wallet Downloads</h1>
+      <div className="mb-8 text-center">
+        <div className="mx-auto w-16 h-16 mb-4">
+          <img src={logoQtm} alt="Quantum Logo" className="w-full h-full" />
+        </div>
+        <h1 className="text-3xl font-bold">Quantum Vault Nexus</h1>
+        <p className="text-muted-foreground mt-2">
+          Complete crypto solution for mining and secure wallet management
+        </p>
+      </div>
       
       <Tabs defaultValue="desktop" className="mb-6">
-        <TabsList className="grid grid-cols-2 mb-4">
+        <TabsList className="grid grid-cols-2 mb-4 w-full md:w-[400px] mx-auto">
           <TabsTrigger value="desktop">
-            <Computer className="mr-2 h-4 w-4" />
+            <Laptop className="mr-2 h-4 w-4" />
             Desktop
           </TabsTrigger>
           <TabsTrigger value="mobile">
@@ -55,169 +56,323 @@ const WalletDownload = () => {
         </TabsList>
         
         <TabsContent value="desktop">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Windows Wallet</CardTitle>
-                <CardDescription>For Windows 10/11</CardDescription>
+                <CardTitle>Windows</CardTitle>
+                <CardDescription>For Windows 10/11 (64-bit)</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Full node capability</li>
-                  <li>Mining functionality</li>
-                  <li>Hardware wallet support</li>
-                  <li>Automatic updates</li>
-                </ul>
+              <CardContent className="space-y-2">
+                <p className="text-sm">Version: 1.0.0</p>
+                <p className="text-sm">Size: 86.4 MB</p>
+                <p className="text-sm">Last Updated: April 20, 2025</p>
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full" 
-                  onClick={() => handleDownload('windows')}
-                  disabled={downloadStarted.windows}
+                  className="w-full"
+                  onClick={() => handleDownload("Windows")}
+                  disabled={downloading}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  {downloadStarted.windows ? "Downloading..." : "Download for Windows"}
+                  Download for Windows
                 </Button>
               </CardFooter>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>macOS Wallet</CardTitle>
-                <CardDescription>For macOS 11+</CardDescription>
+                <CardTitle>macOS</CardTitle>
+                <CardDescription>For macOS 12+ (Intel/Apple Silicon)</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Apple Silicon native</li>
-                  <li>iCloud backup option</li>
-                  <li>Touch ID support</li>
-                  <li>Mining functionality</li>
-                </ul>
+              <CardContent className="space-y-2">
+                <p className="text-sm">Version: 1.0.0</p>
+                <p className="text-sm">Size: 92.7 MB</p>
+                <p className="text-sm">Last Updated: April 20, 2025</p>
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full" 
-                  onClick={() => handleDownload('mac')}
-                  disabled={downloadStarted.mac}
+                  className="w-full"
+                  onClick={() => handleDownload("macOS")}
+                  disabled={downloading}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  {downloadStarted.mac ? "Downloading..." : "Download for macOS"}
+                  Download for macOS
                 </Button>
               </CardFooter>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Linux Wallet</CardTitle>
-                <CardDescription>Ubuntu, Fedora, Debian</CardDescription>
+                <CardTitle>Linux</CardTitle>
+                <CardDescription>For Ubuntu, Debian, Fedora, CentOS</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Command line interface</li>
-                  <li>Full validator support</li>
-                  <li>Advanced mining options</li>
-                  <li>Headless operation</li>
-                </ul>
+              <CardContent className="space-y-2">
+                <p className="text-sm">Version: 1.0.0</p>
+                <p className="text-sm">Size: 78.2 MB</p>
+                <p className="text-sm">Last Updated: April 20, 2025</p>
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full" 
-                  onClick={() => handleDownload('linux')}
-                  disabled={downloadStarted.linux}
+                  className="w-full"
+                  onClick={() => handleDownload("Linux")}
+                  disabled={downloading}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  {downloadStarted.linux ? "Downloading..." : "Download for Linux"}
+                  Download for Linux
                 </Button>
               </CardFooter>
             </Card>
+          </div>
+          
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Desktop Features</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Terminal className="h-5 w-5" />
+                    <CardTitle>Mining Engine</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>XMRig-powered mining with optimized performance</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>CPU thread control with auto-configuration</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Real-time hash rate monitoring with charts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Auto-resume mining on app restart</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    <CardTitle>Secure Wallet</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>BIP-39 mnemonic phrase generation and import</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>OS-native secure encryption for key storage</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>QR code generation for easy receiving</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Complete transaction history with status tracking</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
         
         <TabsContent value="mobile">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Android Wallet</CardTitle>
+                <CardTitle>Android App</CardTitle>
                 <CardDescription>For Android 8.0+</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Fingerprint authentication</li>
-                  <li>QR code payments</li>
-                  <li>Background mining</li>
-                  <li>Offline transaction signing</li>
-                </ul>
+              <CardContent className="space-y-2">
+                <p className="text-sm">Version: 1.0.0</p>
+                <p className="text-sm">Size: 42.8 MB</p>
+                <p className="text-sm">Last Updated: April 20, 2025</p>
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full" 
-                  onClick={() => handleDownload('android')}
-                  disabled={downloadStarted.android}
+                  className="w-full"
+                  onClick={() => handleDownload("Android")}
+                  disabled={downloading}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  {downloadStarted.android ? "Downloading..." : "Download for Android"}
+                  Download APK
                 </Button>
               </CardFooter>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>iOS Wallet</CardTitle>
-                <CardDescription>For iOS 15+</CardDescription>
+                <CardTitle>iOS App</CardTitle>
+                <CardDescription>For iOS 14+</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Face ID/Touch ID support</li>
-                  <li>iCloud backup</li>
-                  <li>Apple Watch companion</li>
-                  <li>Simplified mining mode</li>
-                </ul>
+              <CardContent className="space-y-2">
+                <p className="text-sm">Version: 1.0.0</p>
+                <p className="text-sm">Size: 38.5 MB</p>
+                <p className="text-sm">Last Updated: April 20, 2025</p>
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full" 
-                  onClick={() => handleDownload('ios')}
-                  disabled={downloadStarted.ios}
+                  className="w-full"
+                  onClick={() => handleDownload("iOS")}
+                  disabled={downloading}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  {downloadStarted.ios ? "Downloading..." : "Download for iOS"}
+                  Download IPA
                 </Button>
               </CardFooter>
             </Card>
           </div>
+          
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Mobile Features</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    <CardTitle>Efficient Mining</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Battery-aware mining profiles</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Thermal throttling protection</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Background mining capability</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    <CardTitle>Mobile Security</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Biometric authentication</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Platform secure storage (Keychain/Keystore)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Auto-lock on app background</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    <CardTitle>Sync & Backup</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Encrypted cloud backup</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>Cross-device settings sync</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <span>QR code wallet sharing</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
       
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Security Information</CardTitle>
+          <CardTitle>System Requirements</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start space-x-2">
-            <Shield className="h-5 w-5 mt-0.5 text-green-500" />
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <h3 className="font-medium">Verified Downloads</h3>
-              <p className="text-sm text-muted-foreground">All wallet downloads are cryptographically signed and verified.</p>
+              <h3 className="font-semibold mb-2">Windows</h3>
+              <ul className="space-y-1 text-sm">
+                <li>Windows 10/11 (64-bit)</li>
+                <li>4GB RAM minimum</li>
+                <li>Intel or AMD multi-core CPU</li>
+                <li>500MB disk space</li>
+                <li>Internet connection</li>
+              </ul>
             </div>
-          </div>
-          
-          <div className="flex items-start space-x-2">
-            <Shield className="h-5 w-5 mt-0.5 text-green-500" />
             <div>
-              <h3 className="font-medium">Private Keys</h3>
-              <p className="text-sm text-muted-foreground">Your private keys never leave your device. All transactions are signed locally.</p>
+              <h3 className="font-semibold mb-2">macOS</h3>
+              <ul className="space-y-1 text-sm">
+                <li>macOS 12 Monterey or later</li>
+                <li>4GB RAM minimum</li>
+                <li>Intel or Apple Silicon CPU</li>
+                <li>500MB disk space</li>
+                <li>Internet connection</li>
+              </ul>
             </div>
-          </div>
-          
-          <div className="flex items-start space-x-2">
-            <Shield className="h-5 w-5 mt-0.5 text-green-500" />
             <div>
-              <h3 className="font-medium">Open Source</h3>
-              <p className="text-sm text-muted-foreground">Our wallet software is open source and available for review on GitHub.</p>
+              <h3 className="font-semibold mb-2">Mobile</h3>
+              <ul className="space-y-1 text-sm">
+                <li>Android 8.0+ / iOS 14+</li>
+                <li>2GB RAM minimum</li>
+                <li>ARMv8 64-bit CPU</li>
+                <li>200MB storage space</li>
+                <li>Internet connection</li>
+              </ul>
             </div>
           </div>
         </CardContent>
       </Card>
+      
+      <Alert className="mb-6">
+        <Clock className="h-4 w-4" />
+        <AlertDescription>
+          Mining performance depends on your hardware capabilities. Higher-end CPUs will produce better hash rates.
+          Battery life on mobile devices will be reduced while mining.
+        </AlertDescription>
+      </Alert>
+      
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Ready to get started?</h2>
+        <p className="text-muted-foreground mb-4">Download the app for your platform and start mining today!</p>
+        <Button size="lg" onClick={() => handleDownload("Windows")}>
+          <Download className="mr-2 h-5 w-5" />
+          Download Now
+        </Button>
+      </div>
     </div>
   );
 };
