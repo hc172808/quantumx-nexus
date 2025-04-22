@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@/hooks/use-wallet";
-import { Shield, Send, Wallet as WalletIcon, Swap, Cash } from "lucide-react";
+import { Shield, Send, Wallet as WalletIcon, ArrowRightLeft, Coins } from "lucide-react";
 import { TokenTrading } from "@/components/wallet/TokenTrading";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,7 +38,6 @@ const Wallet = () => {
   const [verifyWord2, setVerifyWord2] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "trading" | "history">("overview");
 
-  // Handle wallet creation
   const handleCreateWallet = async () => {
     setError(null);
 
@@ -61,7 +59,6 @@ const Wallet = () => {
     }
   };
 
-  // Handle wallet unlock
   const handleUnlockWallet = async () => {
     setError(null);
     
@@ -76,7 +73,6 @@ const Wallet = () => {
     }
   };
 
-  // Handle wallet restore
   const handleRestoreWallet = async () => {
     setError(null);
     
@@ -96,7 +92,6 @@ const Wallet = () => {
     }
   };
 
-  // Handle verify seed phrase
   const handleVerifySeedPhrase = () => {
     if (!seedPhrase) return;
     
@@ -109,7 +104,6 @@ const Wallet = () => {
     }
   };
 
-  // Show wallet creation screen
   if (step === "create") {
     return (
       <div className="container max-w-md mx-auto px-4 py-12">
@@ -162,7 +156,6 @@ const Wallet = () => {
     );
   }
 
-  // Show wallet restore screen
   if (step === "restore") {
     return (
       <div className="container max-w-md mx-auto px-4 py-12">
@@ -218,10 +211,7 @@ const Wallet = () => {
     );
   }
 
-  // Show seed phrase screen
   if (step === "show_phrase" && seedPhrase && seedPhraseShown) {
-    const words = seedPhrase.split(' ');
-    
     return (
       <div className="container max-w-md mx-auto px-4 py-12">
         <Card className="border-2 border-quantum/30">
@@ -233,7 +223,7 @@ const Wallet = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-2 p-4 bg-muted rounded-lg" style={{ userSelect: "none" }}>
-              {words.map((word, index) => (
+              {seedPhrase.split(" ").map((word, index) => (
                 <div key={index} className="flex items-center">
                   <span className="text-muted-foreground mr-1">{index + 1}.</span>
                   <span className="font-mono">{word}</span>
@@ -260,10 +250,7 @@ const Wallet = () => {
     );
   }
 
-  // Verify seed phrase screen
   if (step === "verify_phrase" && seedPhrase) {
-    const words = seedPhrase.split(' ');
-    
     return (
       <div className="container max-w-md mx-auto px-4 py-12">
         <Card className="border-2 border-quantum/30">
@@ -307,7 +294,6 @@ const Wallet = () => {
     );
   }
 
-  // Wallet is unlocked - show wallet dashboard
   if (isUnlocked && wallet) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -318,10 +304,8 @@ const Wallet = () => {
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
           
-          {/* Overview Tab */}
           <TabsContent value="overview">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Wallet Overview */}
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Wallet Overview</CardTitle>
@@ -364,7 +348,6 @@ const Wallet = () => {
                 </CardContent>
               </Card>
               
-              {/* Action Panel */}
               <Card>
                 <CardHeader>
                   <CardTitle>Wallet Actions</CardTitle>
@@ -410,7 +393,7 @@ const Wallet = () => {
                       );
                     }}
                   >
-                    <Swap className="mr-2 h-4 w-4" />
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
                     Swap
                   </Button>
                   <Button 
@@ -470,7 +453,7 @@ const Wallet = () => {
                         }
                       }}
                     >
-                      <Cash className="mr-2 h-4 w-4" />
+                      <Coins className="mr-2 h-4 w-4" />
                       Cash Out {!canCashOut() && "(Need 100 NETZ)"}
                     </Button>
                   </div>
@@ -479,12 +462,10 @@ const Wallet = () => {
             </div>
           </TabsContent>
           
-          {/* Trading Tab */}
           <TabsContent value="trading">
             <TokenTrading />
           </TabsContent>
           
-          {/* History Tab */}
           <TabsContent value="history">
             <Card>
               <CardHeader>
@@ -503,7 +484,6 @@ const Wallet = () => {
     );
   }
 
-  // Wallet exists but locked - show unlock screen
   if (hasWallet && !isUnlocked) {
     return (
       <div className="container max-w-md mx-auto px-4 py-12">
@@ -547,7 +527,6 @@ const Wallet = () => {
     );
   }
 
-  // Default: No wallet - show options
   return (
     <div className="container max-w-md mx-auto px-4 py-12">
       <Card className="border-2 border-quantum/30">

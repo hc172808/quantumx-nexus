@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useWallet, Token } from "@/hooks/use-wallet";
-import { Swap, Send, Wallet, Cash } from "lucide-react";
+import { ArrowRightLeft, Send, Wallet, Coins } from "lucide-react";
 
 export function TokenTrading() {
   const { tokens, sendToken, receiveToken, swapTokens, buyToken, tradeToken, cashOut, canCashOut } = useWallet();
@@ -328,7 +328,7 @@ export function TokenTrading() {
               
               <div className="relative">
                 <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-background rounded-full p-2 border">
-                  <Swap className="h-5 w-5" />
+                  <ArrowRightLeft className="h-5 w-5" />
                 </div>
                 <div className="w-full h-[1px] bg-border" />
               </div>
@@ -381,7 +381,7 @@ export function TokenTrading() {
                 onClick={handleSwap}
                 disabled={!swapFromToken || !swapToToken || !swapAmount}
               >
-                <Swap className="mr-2 h-4 w-4" />
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
                 Swap
               </Button>
             </div>
@@ -544,7 +544,7 @@ export function TokenTrading() {
                     disabled={!canCashOut() || !cashOutAmount}
                     onClick={handleCashOut}
                   >
-                    <Cash className="mr-2 h-4 w-4" />
+                    <Coins className="mr-2 h-4 w-4" />
                     Cash Out
                   </Button>
                 </div>
