@@ -104,6 +104,10 @@ const Wallet = () => {
     }
   };
 
+  const handleActionButtonClick = (tabName: "trading") => {
+    setActiveTab(tabName);
+  };
+
   if (step === "create") {
     return (
       <div className="container max-w-md mx-auto px-4 py-12">
@@ -297,7 +301,7 @@ const Wallet = () => {
   if (isUnlocked && wallet) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="overview" onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs defaultValue="overview" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <TabsList className="mb-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="trading">Trading</TabsTrigger>
@@ -357,7 +361,7 @@ const Wallet = () => {
                     className="w-full" 
                     variant="outline"
                     onClick={() => {
-                      setActiveTab("trading");
+                      handleActionButtonClick("trading");
                       document.querySelector('[value="trading"]')?.dispatchEvent(
                         new MouseEvent('click', { bubbles: true })
                       );
@@ -370,7 +374,7 @@ const Wallet = () => {
                     className="w-full" 
                     variant="outline"
                     onClick={() => {
-                      setActiveTab("trading");
+                      handleActionButtonClick("trading");
                       document.querySelector('[value="trading"]')?.dispatchEvent(
                         new MouseEvent('click', { bubbles: true })
                       );
@@ -387,7 +391,7 @@ const Wallet = () => {
                     className="w-full" 
                     variant="outline"
                     onClick={() => {
-                      setActiveTab("trading");
+                      handleActionButtonClick("trading");
                       document.querySelector('[value="trading"]')?.dispatchEvent(
                         new MouseEvent('click', { bubbles: true })
                       );
@@ -400,7 +404,7 @@ const Wallet = () => {
                     className="w-full" 
                     variant="outline"
                     onClick={() => {
-                      setActiveTab("trading");
+                      handleActionButtonClick("trading");
                       document.querySelector('[value="trading"]')?.dispatchEvent(
                         new MouseEvent('click', { bubbles: true })
                       );
@@ -412,7 +416,7 @@ const Wallet = () => {
                     className="w-full" 
                     variant="outline"
                     onClick={() => {
-                      setActiveTab("trading");
+                      handleActionButtonClick("trading");
                       document.querySelector('[value="trading"]')?.dispatchEvent(
                         new MouseEvent('click', { bubbles: true })
                       );
@@ -436,7 +440,7 @@ const Wallet = () => {
                       disabled={!canCashOut()}
                       onClick={() => {
                         if (canCashOut()) {
-                          setActiveTab("trading");
+                          handleActionButtonClick("trading");
                           document.querySelector('[value="trading"]')?.dispatchEvent(
                             new MouseEvent('click', { bubbles: true })
                           );

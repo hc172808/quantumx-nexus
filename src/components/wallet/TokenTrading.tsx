@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +39,10 @@ export function TokenTrading() {
   
   // Cash out form state
   const [cashOutAmount, setCashOutAmount] = useState('');
+  const [activeTab, setActiveTab] = useState('send');
   
   // Initialize receive address
-  React.useEffect(() => {
+  useEffect(() => {
     const address = receiveToken();
     setReceiveAddress(address);
   }, [receiveToken]);
@@ -201,7 +202,7 @@ export function TokenTrading() {
         <CardDescription>Send, receive, swap, buy, and trade tokens</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="send">
+        <Tabs defaultValue="send" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-5 mb-4">
             <TabsTrigger value="send">Send</TabsTrigger>
             <TabsTrigger value="receive">Receive</TabsTrigger>
@@ -518,46 +519,46 @@ export function TokenTrading() {
               </Button>
             </div>
           </TabsContent>
-          
-          {/* Cash Out Tab (Hidden) */}
-          <div className="mt-4 border-t pt-4">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h4 className="font-medium">Cash Out</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Convert NETZ coins to real money (requires at least 100 NETZ)
-                  </p>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="number"
-                    placeholder="Amount"
-                    value={cashOutAmount}
-                    onChange={(e) => setCashOutAmount(e.target.value)}
-                    className="w-32"
-                    disabled={!canCashOut()}
-                  />
-                  <Button 
-                    className={canCashOut() ? "bg-quantum hover:bg-quantum-dark" : "bg-muted text-muted-foreground cursor-not-allowed"}
-                    disabled={!canCashOut() || !cashOutAmount}
-                    onClick={handleCashOut}
-                  >
-                    <Coins className="mr-2 h-4 w-4" />
-                    Cash Out
-                  </Button>
-                </div>
+        </Tabs>
+        
+        {/* Cash Out section */}
+        <div className="mt-4 border-t pt-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-medium">Cash Out</h4>
+                <p className="text-xs text-muted-foreground">
+                  Convert NETZ coins to real money (requires at least 100 NETZ)
+                </p>
               </div>
               
-              {!canCashOut() && (
-                <div className="bg-muted p-3 rounded-md text-sm text-center">
-                  You need at least 100 NETZ coins to cash out
-                </div>
-              )}
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={cashOutAmount}
+                  onChange={(e) => setCashOutAmount(e.target.value)}
+                  className="w-32"
+                  disabled={!canCashOut()}
+                />
+                <Button 
+                  className={canCashOut() ? "bg-quantum hover:bg-quantum-dark" : "bg-muted text-muted-foreground cursor-not-allowed"}
+                  disabled={!canCashOut() || !cashOutAmount}
+                  onClick={handleCashOut}
+                >
+                  <Coins className="mr-2 h-4 w-4" />
+                  Cash Out
+                </Button>
+              </div>
             </div>
+            
+            {!canCashOut() && (
+              <div className="bg-muted p-3 rounded-md text-sm text-center">
+                You need at least 100 NETZ coins to cash out
+              </div>
+            )}
           </div>
-        </Tabs>
+        </div>
       </CardContent>
     </Card>
   );
