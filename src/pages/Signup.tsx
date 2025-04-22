@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Shield } from "lucide-react";
+import { Shield, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Checkbox } from "@/components/ui/checkbox";
+import { generateMnemonic } from "@/lib/wallet/crypto-utils";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -16,6 +17,10 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [step, setStep] = useState<"form" | "recovery">("form");
+  const [recoveryPhrase, setRecoveryPhrase] = useState("");
   const { toast } = useToast();
   const { signup } = useAuth();
   const navigate = useNavigate();
@@ -42,14 +47,15 @@ const Signup = () => {
         throw new Error("Password must be at least 8 characters long");
       }
       
+      // Generate recovery phrase
+      const mnemonic = generateMnemonic(128); // 12 words
+      setRecoveryPhrase(mnemonic);
+      
       const success = await signup(email, password);
       
       if (success) {
-        toast({
-          title: "Account Created",
-          description: "Your account has been successfully created",
-        });
-        navigate("/wallet");
+        // Move to recovery phrase step instead of navigating directly
+        setStep("recovery");
       } else {
         throw new Error("Failed to create account");
       }
@@ -59,10 +65,85 @@ const Signup = () => {
         description: error instanceof Error ? error.message : "An error occurred during signup",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
+
+  const handleRecoveryPhraseConfirmed = () => {
+    setIsLoading(false);
+    toast({
+      title: "Account Created",
+      description: "Your account has been successfully created. Keep your recovery phrase safe!",
+    });
+    navigate("/wallet");
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  if (step === "recovery") {
+    return (
+      <div className="container max-w-md mx-auto px-4 py-12">
+        <Card className="border-2 border-quantum/30">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+              <Shield className="h-8 w-8 text-red-500" />
+            </div>
+            <CardTitle>Your Recovery Phrase</CardTitle>
+            <CardDescription className="text-red-500 font-semibold">
+              IMPORTANT: Save this phrase somewhere safe. It's the only way to recover your account!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <div className="grid grid-cols-3 gap-2">
+                {recoveryPhrase.split(" ").map((word, index) => (
+                  <div key={index} className="flex items-center">
+                    <span className="text-muted-foreground text-xs mr-1">{index + 1}.</span>
+                    <span className="font-mono text-sm">{word}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="bg-red-100 p-3 rounded-md border border-red-300">
+              <p className="text-sm text-red-700">
+                <strong>Warning:</strong> Never share this phrase with anyone. Anyone with this phrase can access your account.
+                This phrase will never be shown again!
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="confirmed" 
+                onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+              />
+              <label
+                htmlFor="confirmed"
+                className="text-sm font-medium leading-none"
+              >
+                I have saved my recovery phrase in a secure location
+              </label>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              onClick={handleRecoveryPhraseConfirmed}
+              className="w-full bg-quantum hover:bg-quantum-dark"
+              disabled={!termsAccepted}
+            >
+              Continue to Wallet
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-md mx-auto px-4 py-12">
@@ -91,25 +172,47 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Create a strong password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={toggleConfirmPasswordVisibility}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox 

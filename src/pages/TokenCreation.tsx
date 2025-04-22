@@ -27,12 +27,37 @@ const TokenCreation = () => {
   const [mintable, setMintable] = useState(false);
   const [mutableInfo, setMutableInfo] = useState(false);
   const [ownershipRenounced, setOwnershipRenounced] = useState(false);
+  const [quantumProtection, setQuantumProtection] = useState(true);
   const [updateAuthority, setUpdateAuthority] = useState("");
   const [freezeAuthority, setFreezeAuthority] = useState("");
-  const [quantumProtection, setQuantumProtection] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Feature pricing
+  const featurePricing = {
+    mintable: 0.05,
+    mutableInfo: 0.03,
+    ownershipRenounced: -0.02, // Discount for renouncing ownership
+    quantumProtection: 0.10
+  };
+
+  // Calculate total feature cost
+  const calculateFeatureCost = () => {
+    let featureCost = 0;
+    if (mintable) featureCost += featurePricing.mintable;
+    if (mutableInfo) featureCost += featurePricing.mutableInfo;
+    if (ownershipRenounced) featureCost += featurePricing.ownershipRenounced;
+    if (quantumProtection) featureCost += featurePricing.quantumProtection;
+    return featureCost;
+  };
+
+  // Calculate total token cost
+  const calculateTotalTokenCost = () => {
+    const basePrice = parseFloat(price) || 0;
+    const featureCost = calculateFeatureCost();
+    return basePrice + featureCost;
+  };
 
   // Redirect to wallet if not unlocked
   if (!isUnlocked || !wallet) {
@@ -229,13 +254,16 @@ const TokenCreation = () => {
               </div>
             </div>
             
-            {/* Token Options */}
+            {/* Token Options with Pricing */}
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="mintable" className="cursor-pointer flex items-center space-x-2">
-                  <span>Mintable</span>
-                  <span className="text-xs text-muted-foreground">(Can create more tokens later)</span>
-                </Label>
+                <div>
+                  <Label htmlFor="mintable" className="cursor-pointer flex items-center">
+                    <span>Mintable</span>
+                    <span className="ml-2 text-xs text-muted-foreground">(Can create more tokens later)</span>
+                  </Label>
+                  <p className="text-xs text-quantum mt-1">+${featurePricing.mintable.toFixed(2)} per token</p>
+                </div>
                 <Switch
                   id="mintable"
                   checked={mintable}
@@ -244,10 +272,13 @@ const TokenCreation = () => {
               </div>
               
               <div className="flex items-center justify-between">
-                <Label htmlFor="mutableInfo" className="cursor-pointer flex items-center space-x-2">
-                  <span>Mutable Info</span>
-                  <span className="text-xs text-muted-foreground">(Can change token info later)</span>
-                </Label>
+                <div>
+                  <Label htmlFor="mutableInfo" className="cursor-pointer flex items-center">
+                    <span>Mutable Info</span>
+                    <span className="ml-2 text-xs text-muted-foreground">(Can change token info later)</span>
+                  </Label>
+                  <p className="text-xs text-quantum mt-1">+${featurePricing.mutableInfo.toFixed(2)} per token</p>
+                </div>
                 <Switch
                   id="mutableInfo"
                   checked={mutableInfo}
@@ -256,10 +287,13 @@ const TokenCreation = () => {
               </div>
               
               <div className="flex items-center justify-between">
-                <Label htmlFor="ownershipRenounced" className="cursor-pointer flex items-center space-x-2">
-                  <span>Renounce Ownership</span>
-                  <span className="text-xs text-muted-foreground">(Irreversibly give up control)</span>
-                </Label>
+                <div>
+                  <Label htmlFor="ownershipRenounced" className="cursor-pointer flex items-center">
+                    <span>Renounce Ownership</span>
+                    <span className="ml-2 text-xs text-muted-foreground">(Irreversibly give up control)</span>
+                  </Label>
+                  <p className="text-xs text-green-500 mt-1">-${Math.abs(featurePricing.ownershipRenounced).toFixed(2)} discount per token</p>
+                </div>
                 <Switch
                   id="ownershipRenounced"
                   checked={ownershipRenounced}
@@ -268,10 +302,13 @@ const TokenCreation = () => {
               </div>
               
               <div className="flex items-center justify-between">
-                <Label htmlFor="quantumProtection" className="cursor-pointer flex items-center space-x-2">
-                  <span>Quantum Protection</span>
-                  <span className="text-xs text-muted-foreground">(Required for token security)</span>
-                </Label>
+                <div>
+                  <Label htmlFor="quantumProtection" className="cursor-pointer flex items-center">
+                    <span>Quantum Protection</span>
+                    <span className="ml-2 text-xs text-muted-foreground">(Required for token security)</span>
+                  </Label>
+                  <p className="text-xs text-quantum mt-1">+${featurePricing.quantumProtection.toFixed(2)} per token</p>
+                </div>
                 <Switch
                   id="quantumProtection"
                   checked={quantumProtection}
@@ -303,6 +340,22 @@ const TokenCreation = () => {
                 </div>
               </div>
             )}
+            
+            {/* Price Summary */}
+            <div className="bg-muted p-4 rounded-md">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm">Base token price:</span>
+                <span className="font-medium">${price || "0.00"}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm">Feature additions:</span>
+                <span className="font-medium">${calculateFeatureCost().toFixed(2)}</span>
+              </div>
+              <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
+                <span className="font-medium">Final token price:</span>
+                <span className="font-bold text-quantum">${calculateTotalTokenCost().toFixed(2)}</span>
+              </div>
+            </div>
             
             <div className="p-3 bg-muted rounded-md">
               <p className="text-sm text-muted-foreground">
