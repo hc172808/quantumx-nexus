@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { useWallet } from "@/hooks/use-wallet";
@@ -19,7 +20,7 @@ const Wallet = () => {
     createWallet, 
     lockWallet, 
     sendToken,
-    importWallet: importWalletFn,
+    restoreWallet, // Changed from importWallet to restoreWallet to match the hook
     isLoading 
   } = useWallet();
   
@@ -103,7 +104,8 @@ const Wallet = () => {
     }
 
     try {
-      const success = await importWalletFn(privateKey, "");
+      // Changed from importWalletFn to restoreWallet to match the hook
+      const success = await restoreWallet(privateKey, "");
       
       if (success) {
         toast({

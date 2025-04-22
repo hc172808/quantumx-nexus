@@ -27,6 +27,10 @@ import ForgotPassword from "./pages/ForgotPassword";
 import WhatsAppConfig from "./pages/WhatsAppConfig";
 import WalletRecoveryGuide from "./pages/guides/WalletRecoveryGuide";
 import WalletConfigGuide from "./pages/guides/WalletConfigGuide";
+// Import the new page components
+import NodeConfig from "./pages/NodeConfig";
+import DomainSettings from "./pages/DomainSettings";
+import WalletDownload from "./pages/WalletDownload";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +60,10 @@ const App = () => (
                 <Route path="/wallet-recovery-guide" element={<Layout><WalletRecoveryGuide /></Layout>} />
                 <Route path="/wallet-config-guide" element={<Layout><WalletConfigGuide /></Layout>} />
                 <Route path="/node-config" element={<Layout><NodeConfigPage /></Layout>} />
+                {/* Add new routes */}
+                <Route path="/node-configuration" element={<Layout><NodeConfig /></Layout>} />
+                <Route path="/domain-settings" element={<Layout><DomainSettings /></Layout>} />
+                <Route path="/wallet-download" element={<Layout><WalletDownload /></Layout>} />
                 <Route path="*" element={<Layout><NotFound /></Layout>} />
               </Routes>
             </BrowserRouter>
