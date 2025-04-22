@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,22 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { WalletProvider } from "@/hooks/use-wallet";
 import Layout from "./components/layout/Layout";
 import NodeConfigPage from "./pages/NodeConfigPage";
+
+// Import all the page components that were missing
+import Wallet from "./pages/Wallet";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import TokenCreation from "./pages/TokenCreation";
+import TokenInfo from "./pages/TokenInfo";
+import Marketplace from "./pages/Marketplace";
+import AdminPanel from "./pages/AdminPanel";
+import TokenPriceConfig from "./pages/TokenPriceConfig";
+import ChangePassword from "./pages/ChangePassword";
+import ForgotPassword from "./pages/ForgotPassword";
+import WhatsAppConfig from "./pages/WhatsAppConfig";
+import WalletRecoveryGuide from "./pages/guides/WalletRecoveryGuide";
+import WalletConfigGuide from "./pages/guides/WalletConfigGuide";
 
 const queryClient = new QueryClient();
 
