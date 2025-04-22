@@ -71,36 +71,14 @@ export function MarketChart({ tokenId }: ChartProps) {
         <CardDescription>
           Historical performance data
         </CardDescription>
-        <TabsList className="mt-2">
-          <TabsTrigger 
-            value="24h" 
-            className={timeframe === '24h' ? 'bg-quantum/20' : ''}
-            onClick={() => setTimeframe('24h')}
-          >
-            24H
-          </TabsTrigger>
-          <TabsTrigger 
-            value="7d" 
-            className={timeframe === '7d' ? 'bg-quantum/20' : ''}
-            onClick={() => setTimeframe('7d')}
-          >
-            7D
-          </TabsTrigger>
-          <TabsTrigger 
-            value="30d" 
-            className={timeframe === '30d' ? 'bg-quantum/20' : ''}
-            onClick={() => setTimeframe('30d')}
-          >
-            30D
-          </TabsTrigger>
-          <TabsTrigger 
-            value="90d" 
-            className={timeframe === '90d' ? 'bg-quantum/20' : ''}
-            onClick={() => setTimeframe('90d')}
-          >
-            90D
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="24h" value={timeframe} onValueChange={setTimeframe}>
+          <TabsList className="mt-2">
+            <TabsTrigger value="24h">24H</TabsTrigger>
+            <TabsTrigger value="7d">7D</TabsTrigger>
+            <TabsTrigger value="30d">30D</TabsTrigger>
+            <TabsTrigger value="90d">90D</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </CardHeader>
       <CardContent>
         {isLoading ? (
