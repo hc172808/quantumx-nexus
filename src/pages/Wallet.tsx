@@ -12,17 +12,32 @@ import { WebMiner } from "@/components/wallet/WebMiner";
 
 const Wallet = () => {
   const { isAuthenticated, user } = useAuth();
-  const { wallet, balance, createWallet, sendTransaction, importWallet } = useWallet();
+  const { 
+    wallet, 
+    tokens,
+    isUnlocked, 
+    createWallet, 
+    lockWallet, 
+    sendToken,
+    importWallet: importWalletFn,
+    isLoading 
+  } = useWallet();
+  
   const { toast } = useToast();
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [privateKey, setPrivateKey] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [transactions, setTransactions] = useState([
     { id: 1, type: 'receive', amount: '50', from: '0x1234...5678', timestamp: Date.now() - 86400000 },
     { id: 2, type: 'send', amount: '10', to: '0x8765...4321', timestamp: Date.now() - 43200000 },
     { id: 3, type: 'receive', amount: '25', from: '0x9876...3456', timestamp: Date.now() - 3600000 },
   ]);
+
+  const getBalance = () => {
+    if (!tokens || tokens.length === 0) return "0";
+    const qtmToken = tokens.find(t => t.symbol === "QTM");
+    return qtmToken ? qtmToken.balance : "0";
+  };
 
   const handleCopyAddress = () => {
     if (wallet?.address) {
@@ -44,35 +59,36 @@ const Wallet = () => {
       return;
     }
 
-    setIsLoading(true);
     try {
-      await sendTransaction(recipient, parseFloat(amount));
-      toast({
-        title: "Transaction Sent",
-        description: `Successfully sent ${amount} NETZ to ${recipient.substring(0, 6)}...${recipient.substring(recipient.length - 4)}`,
-      });
-      setRecipient("");
-      setAmount("");
+      const success = sendToken(recipient, amount, "QTM");
       
-      // Add transaction to history
-      setTransactions([
-        {
-          id: Date.now(),
-          type: 'send',
-          amount,
-          to: recipient,
-          timestamp: Date.now()
-        },
-        ...transactions
-      ]);
+      if (success) {
+        toast({
+          title: "Transaction Sent",
+          description: `Successfully sent ${amount} NETZ to ${recipient.substring(0, 6)}...${recipient.substring(recipient.length - 4)}`,
+        });
+        setRecipient("");
+        setAmount("");
+        
+        setTransactions([
+          {
+            id: Date.now(),
+            type: 'send',
+            amount,
+            to: recipient,
+            timestamp: Date.now()
+          },
+          ...transactions
+        ]);
+      } else {
+        throw new Error("Transaction failed");
+      }
     } catch (error) {
       toast({
         title: "Transaction Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -86,22 +102,24 @@ const Wallet = () => {
       return;
     }
 
-    setIsLoading(true);
     try {
-      await importWallet(privateKey);
-      toast({
-        title: "Wallet Imported",
-        description: "Successfully imported wallet",
-      });
-      setPrivateKey("");
+      const success = await importWalletFn(privateKey, "");
+      
+      if (success) {
+        toast({
+          title: "Wallet Imported",
+          description: "Successfully imported wallet",
+        });
+        setPrivateKey("");
+      } else {
+        throw new Error("Import failed");
+      }
     } catch (error) {
       toast({
         title: "Import Failed",
         description: error instanceof Error ? error.message : "Invalid private key",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -143,7 +161,7 @@ const Wallet = () => {
             <CardDescription>Get started with your Quantum wallet</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button onClick={createWallet} className="w-full">
+            <Button onClick={() => createWallet("")} className="w-full">
               <Plus className="mr-2 h-4 w-4" />
               Create New Wallet
             </Button>
@@ -176,7 +194,7 @@ const Wallet = () => {
             <CardContent className="space-y-4">
               <div className="flex flex-col space-y-2">
                 <span className="text-sm text-muted-foreground">Balance</span>
-                <span className="text-4xl font-bold">{balance} NETZ</span>
+                <span className="text-4xl font-bold">{getBalance()} NETZ</span>
               </div>
               
               <div className="flex flex-col space-y-2">
@@ -330,7 +348,6 @@ const Wallet = () => {
         </>
       )}
       
-      {/* Add the Web Miner component */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Mining</h2>
         <WebMiner isLoggedIn={isAuthenticated} />
