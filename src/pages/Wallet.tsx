@@ -1,529 +1,130 @@
-import { useState } from "react";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from "@/hooks/use-auth";
+import { useWallet } from "@/hooks/use-wallet";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useWallet } from "@/hooks/use-wallet";
-import { Shield, Send, Wallet as WalletIcon, ArrowRightLeft, Coins } from "lucide-react";
-import { TokenTrading } from "@/components/wallet/TokenTrading";
-import { useToast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Copy, Send, Plus, ArrowDownUp, Clock, Shield, Key } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { WebMiner } from "@/components/wallet/WebMiner";
 
 const Wallet = () => {
-  const {
-    isLoading,
-    hasWallet,
-    isUnlocked,
-    wallet,
-    tokens,
-    seedPhrase,
-    seedPhraseShown,
-    banInfo,
-    createWallet,
-    unlockWallet,
-    restoreWallet,
-    showSeedPhrase,
-    hideSeedPhrase,
-    canCashOut,
-  } = useWallet();
-
+  const { isAuthenticated, user } = useAuth();
+  const { wallet, balance, createWallet, sendTransaction, importWallet } = useWallet();
   const { toast } = useToast();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [mnemonic, setMnemonic] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<"default" | "create" | "restore" | "show_phrase" | "verify_phrase">("default");
-  const [verifyIndex1, setVerifyIndex1] = useState(Math.floor(Math.random() * 6));
-  const [verifyIndex2, setVerifyIndex2] = useState(6 + Math.floor(Math.random() * 6));
-  const [verifyWord1, setVerifyWord1] = useState("");
-  const [verifyWord2, setVerifyWord2] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "trading" | "history">("overview");
+  const [recipient, setRecipient] = useState("");
+  const [amount, setAmount] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState([
+    { id: 1, type: 'receive', amount: '50', from: '0x1234...5678', timestamp: Date.now() - 86400000 },
+    { id: 2, type: 'send', amount: '10', to: '0x8765...4321', timestamp: Date.now() - 43200000 },
+    { id: 3, type: 'receive', amount: '25', from: '0x9876...3456', timestamp: Date.now() - 3600000 },
+  ]);
 
-  const handleCreateWallet = async () => {
-    setError(null);
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    const success = await createWallet(password);
-    if (success) {
-      setStep("show_phrase");
-    } else {
-      setError("Failed to create wallet");
+  const handleCopyAddress = () => {
+    if (wallet?.address) {
+      navigator.clipboard.writeText(wallet.address);
+      toast({
+        title: "Address Copied",
+        description: "Wallet address copied to clipboard",
+      });
     }
   };
 
-  const handleUnlockWallet = async () => {
-    setError(null);
-    
-    if (password.length < 1) {
-      setError("Password required");
+  const handleSend = async () => {
+    if (!recipient || !amount) {
+      toast({
+        title: "Error",
+        description: "Please enter recipient address and amount",
+        variant: "destructive",
+      });
       return;
     }
 
-    const success = await unlockWallet(password);
-    if (!success) {
-      setError("Invalid password or wallet locked due to too many attempts");
+    setIsLoading(true);
+    try {
+      await sendTransaction(recipient, parseFloat(amount));
+      toast({
+        title: "Transaction Sent",
+        description: `Successfully sent ${amount} NETZ to ${recipient.substring(0, 6)}...${recipient.substring(recipient.length - 4)}`,
+      });
+      setRecipient("");
+      setAmount("");
+      
+      // Add transaction to history
+      setTransactions([
+        {
+          id: Date.now(),
+          type: 'send',
+          amount,
+          to: recipient,
+          timestamp: Date.now()
+        },
+        ...transactions
+      ]);
+    } catch (error) {
+      toast({
+        title: "Transaction Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRestoreWallet = async () => {
-    setError(null);
-    
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+  const handleImport = async () => {
+    if (!privateKey) {
+      toast({
+        title: "Error",
+        description: "Please enter a private key",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    const success = await restoreWallet(mnemonic, password);
-    if (!success) {
-      setError("Failed to restore wallet. Check that your recovery phrase is correct.");
-    }
-  };
-
-  const handleVerifySeedPhrase = () => {
-    if (!seedPhrase) return;
-    
-    const words = seedPhrase.split(' ');
-    if (words[verifyIndex1] === verifyWord1 && words[verifyIndex2] === verifyWord2) {
-      hideSeedPhrase();
-      setStep("default");
-    } else {
-      setError("Words don't match. Please try again.");
+    setIsLoading(true);
+    try {
+      await importWallet(privateKey);
+      toast({
+        title: "Wallet Imported",
+        description: "Successfully imported wallet",
+      });
+      setPrivateKey("");
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Invalid private key",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleActionButtonClick = (tabName: "trading") => {
-    setActiveTab(tabName);
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
   };
 
-  if (step === "create") {
+  if (!isAuthenticated) {
     return (
-      <div className="container max-w-md mx-auto px-4 py-12">
-        <Card className="border-2 border-quantum/30">
+      <div className="container mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6">Wallet</h1>
+        <Card>
           <CardHeader>
-            <CardTitle className="text-center">Create New Wallet</CardTitle>
-            <CardDescription className="text-center">
-              Create a new quantum-protected HD wallet
-            </CardDescription>
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>Please log in to access your wallet</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Password</label>
-              <Input
-                type="password"
-                placeholder="Enter a strong password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Confirm Password</label>
-              <Input
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
-            <div className="bg-muted rounded-md p-3">
-              <p className="text-xs text-muted-foreground">
-                <strong>Important:</strong> We do not store your password or recovery phrase.
-                You are fully responsible for keeping them safe.
-              </p>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep("default")}>Back</Button>
-            <Button 
-              className="bg-quantum hover:bg-quantum-dark"
-              disabled={isLoading || !password || !confirmPassword}
-              onClick={handleCreateWallet}
-            >
-              {isLoading ? "Creating..." : "Create Wallet"}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (step === "restore") {
-    return (
-      <div className="container max-w-md mx-auto px-4 py-12">
-        <Card className="border-2 border-quantum/30">
-          <CardHeader>
-            <CardTitle className="text-center">Restore Wallet</CardTitle>
-            <CardDescription className="text-center">
-              Enter your recovery phrase to restore your wallet
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Recovery Phrase</label>
-              <Input
-                type="text"
-                placeholder="Enter 12 or 24 word phrase separated by spaces"
-                value={mnemonic}
-                onChange={(e) => setMnemonic(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">New Password</label>
-              <Input
-                type="password"
-                placeholder="Enter a strong password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Confirm Password</label>
-              <Input
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep("default")}>Back</Button>
-            <Button 
-              className="bg-quantum hover:bg-quantum-dark"
-              disabled={isLoading || !mnemonic || !password || !confirmPassword}
-              onClick={handleRestoreWallet}
-            >
-              {isLoading ? "Restoring..." : "Restore Wallet"}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (step === "show_phrase" && seedPhrase && seedPhraseShown) {
-    return (
-      <div className="container max-w-md mx-auto px-4 py-12">
-        <Card className="border-2 border-quantum/30">
-          <CardHeader>
-            <CardTitle className="text-center">Your Recovery Phrase</CardTitle>
-            <CardDescription className="text-center text-red-500 font-bold">
-              This is your recovery phrase. If you lose it, you lose access to your wallet. We cannot recover it.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 p-4 bg-muted rounded-lg" style={{ userSelect: "none" }}>
-              {seedPhrase.split(" ").map((word, index) => (
-                <div key={index} className="flex items-center">
-                  <span className="text-muted-foreground mr-1">{index + 1}.</span>
-                  <span className="font-mono">{word}</span>
-                </div>
-              ))}
-            </div>
-            <div className="bg-red-500/10 border border-red-500/30 rounded-md p-3">
-              <p className="text-sm text-red-600 dark:text-red-400">
-                <strong>IMPORTANT!</strong> Write down this phrase in the correct order and keep it secure. 
-                Screenshots are not secure. Anyone with access to this phrase can access your funds.
-              </p>
-            </div>
+          <CardContent>
+            <p>You need to be logged in to view and manage your wallet.</p>
           </CardContent>
           <CardFooter>
-            <Button 
-              className="w-full bg-quantum hover:bg-quantum-dark"
-              onClick={() => setStep("verify_phrase")}
-            >
-              I've Stored it Securely
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (step === "verify_phrase" && seedPhrase) {
-    return (
-      <div className="container max-w-md mx-auto px-4 py-12">
-        <Card className="border-2 border-quantum/30">
-          <CardHeader>
-            <CardTitle className="text-center">Verify Recovery Phrase</CardTitle>
-            <CardDescription className="text-center">
-              Please verify words from your recovery phrase
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Word #{verifyIndex1 + 1}</label>
-              <Input
-                type="text"
-                placeholder={`Enter word #${verifyIndex1 + 1}`}
-                value={verifyWord1}
-                onChange={(e) => setVerifyWord1(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Word #{verifyIndex2 + 1}</label>
-              <Input
-                type="text"
-                placeholder={`Enter word #${verifyIndex2 + 1}`}
-                value={verifyWord2}
-                onChange={(e) => setVerifyWord2(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
-          </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full bg-quantum hover:bg-quantum-dark"
-              onClick={handleVerifySeedPhrase}
-            >
-              Verify & Continue
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isUnlocked && wallet) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="trading">Trading</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Wallet Overview</CardTitle>
-                  <CardDescription>Manage your digital assets</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-6">
-                    <p className="text-sm text-muted-foreground mb-1">Your Address</p>
-                    <div className="bg-muted p-3 rounded-md font-mono text-xs break-all">
-                      {wallet.address}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3">Your Assets</h3>
-                    {tokens.length > 0 ? (
-                      <div className="space-y-3">
-                        {tokens.map((token, index) => (
-                          <div key={index} className="flex justify-between items-center bg-card p-3 rounded-lg border">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-muted rounded-full mr-3"></div>
-                              <div>
-                                <p className="font-medium">{token.name}</p>
-                                <p className="text-xs text-muted-foreground">{token.symbol}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-medium">{token.balance}</p>
-                              <p className="text-xs text-muted-foreground">
-                                ${(parseFloat(token.balance) * token.value).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground">No assets yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Wallet Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      handleActionButtonClick("trading");
-                      document.querySelector('[value="trading"]')?.dispatchEvent(
-                        new MouseEvent('click', { bubbles: true })
-                      );
-                    }}
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Send
-                  </Button>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      handleActionButtonClick("trading");
-                      document.querySelector('[value="trading"]')?.dispatchEvent(
-                        new MouseEvent('click', { bubbles: true })
-                      );
-                      toast({
-                        title: "Receive Tokens",
-                        description: "Switch to the Receive tab to get your wallet address",
-                      });
-                    }}
-                  >
-                    <WalletIcon className="mr-2 h-4 w-4" />
-                    Receive
-                  </Button>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      handleActionButtonClick("trading");
-                      document.querySelector('[value="trading"]')?.dispatchEvent(
-                        new MouseEvent('click', { bubbles: true })
-                      );
-                    }}
-                  >
-                    <ArrowRightLeft className="mr-2 h-4 w-4" />
-                    Swap
-                  </Button>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      handleActionButtonClick("trading");
-                      document.querySelector('[value="trading"]')?.dispatchEvent(
-                        new MouseEvent('click', { bubbles: true })
-                      );
-                    }}
-                  >
-                    Buy
-                  </Button>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      handleActionButtonClick("trading");
-                      document.querySelector('[value="trading"]')?.dispatchEvent(
-                        new MouseEvent('click', { bubbles: true })
-                      );
-                    }}
-                  >
-                    Trade
-                  </Button>
-                  <div className="pt-4 border-t">
-                    <Button 
-                      className="w-full bg-quantum hover:bg-quantum-dark" 
-                      onClick={showSeedPhrase}
-                    >
-                      <Shield className="mr-2 h-4 w-4" />
-                      Backup Wallet
-                    </Button>
-                  </div>
-                  <div>
-                    <Button 
-                      className="w-full" 
-                      variant={canCashOut() ? "default" : "outline"}
-                      disabled={!canCashOut()}
-                      onClick={() => {
-                        if (canCashOut()) {
-                          handleActionButtonClick("trading");
-                          document.querySelector('[value="trading"]')?.dispatchEvent(
-                            new MouseEvent('click', { bubbles: true })
-                          );
-                          toast({
-                            title: "Cash Out",
-                            description: "Use the Cash Out section at the bottom of the trading panel",
-                          });
-                        } else {
-                          toast({
-                            title: "Cash Out Unavailable",
-                            description: "You need at least 100 NETZ to cash out",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <Coins className="mr-2 h-4 w-4" />
-                      Cash Out {!canCashOut() && "(Need 100 NETZ)"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="trading">
-            <TokenTrading />
-          </TabsContent>
-          
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>Your recent wallet activities</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  No transaction history yet
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    );
-  }
-
-  if (hasWallet && !isUnlocked) {
-    return (
-      <div className="container max-w-md mx-auto px-4 py-12">
-        <Card className="border-2 border-quantum/30">
-          <CardHeader>
-            <CardTitle className="text-center">Unlock Your Wallet</CardTitle>
-            <CardDescription className="text-center">
-              Enter your password to access your wallet
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Password</label>
-              <Input
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
-            {banInfo && (
-              <div className="bg-destructive/10 p-3 rounded-md">
-                <p className="text-sm text-destructive">
-                  Too many failed attempts. Please try again in {Math.ceil(banInfo.remainingSeconds / 60)} minutes.
-                </p>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full bg-quantum hover:bg-quantum-dark"
-              disabled={isLoading || !password || !!banInfo}
-              onClick={handleUnlockWallet}
-            >
-              {isLoading ? "Unlocking..." : "Unlock Wallet"}
+            <Button asChild>
+              <a href="/login">Login</a>
             </Button>
           </CardFooter>
         </Card>
@@ -532,41 +133,208 @@ const Wallet = () => {
   }
 
   return (
-    <div className="container max-w-md mx-auto px-4 py-12">
-      <Card className="border-2 border-quantum/30">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-quantum/10 rounded-full flex items-center justify-center">
-            <Shield className="h-8 w-8 text-quantum" />
-          </div>
-          <CardTitle>Quantum-Protected Wallet</CardTitle>
-          <CardDescription>
-            Create or restore a wallet with quantum-safe cryptography
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button 
-            className="w-full bg-quantum hover:bg-quantum-dark" 
-            size="lg"
-            onClick={() => setStep("create")}
-          >
-            Create New Wallet
-          </Button>
-          <Button 
-            className="w-full" 
-            variant="outline" 
-            size="lg"
-            onClick={() => setStep("restore")}
-          >
-            Restore Existing Wallet
-          </Button>
-          <div className="p-3 bg-muted rounded-md">
-            <p className="text-sm text-muted-foreground">
-              All wallet keys are created and stored locally with client-side encryption.
-              We never have access to your keys or funds.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Wallet</h1>
+      
+      {!wallet ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create or Import Wallet</CardTitle>
+            <CardDescription>Get started with your Quantum wallet</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={createWallet} className="w-full">
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Wallet
+            </Button>
+            
+            <div className="space-y-2">
+              <Label htmlFor="privateKey">Import Existing Wallet</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="privateKey"
+                  placeholder="Enter private key"
+                  value={privateKey}
+                  onChange={(e) => setPrivateKey(e.target.value)}
+                  type="password"
+                />
+                <Button onClick={handleImport} disabled={isLoading}>
+                  <Key className="mr-2 h-4 w-4" />
+                  Import
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Wallet Balance</CardTitle>
+              <CardDescription>Your current balance and wallet address</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col space-y-2">
+                <span className="text-sm text-muted-foreground">Balance</span>
+                <span className="text-4xl font-bold">{balance} NETZ</span>
+              </div>
+              
+              <div className="flex flex-col space-y-2">
+                <span className="text-sm text-muted-foreground">Wallet Address</span>
+                <div className="flex items-center space-x-2">
+                  <code className="bg-muted p-2 rounded text-xs md:text-sm w-full overflow-x-auto">
+                    {wallet.address}
+                  </code>
+                  <Button variant="outline" size="icon" onClick={handleCopyAddress}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Tabs defaultValue="send" className="mb-6">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="send">
+                <Send className="mr-2 h-4 w-4" />
+                Send
+              </TabsTrigger>
+              <TabsTrigger value="transactions">
+                <ArrowDownUp className="mr-2 h-4 w-4" />
+                Transactions
+              </TabsTrigger>
+              <TabsTrigger value="security">
+                <Shield className="mr-2 h-4 w-4" />
+                Security
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="send">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Send NETZ</CardTitle>
+                  <CardDescription>Transfer tokens to another wallet</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient">Recipient Address</Label>
+                    <Input
+                      id="recipient"
+                      placeholder="0x..."
+                      value={recipient}
+                      onChange={(e) => setRecipient(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount (NETZ)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      placeholder="0.0"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full" 
+                    onClick={handleSend} 
+                    disabled={isLoading || !recipient || !amount}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Transaction
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="transactions">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transaction History</CardTitle>
+                  <CardDescription>Recent transactions from your wallet</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {transactions.length > 0 ? (
+                      transactions.map(tx => (
+                        <div key={tx.id} className="flex items-center justify-between p-3 border rounded">
+                          <div className="flex items-center">
+                            <div className={`p-2 rounded-full mr-3 ${tx.type === 'receive' ? 'bg-green-100 dark:bg-green-900' : 'bg-blue-100 dark:bg-blue-900'}`}>
+                              {tx.type === 'receive' ? (
+                                <ArrowDownUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <Send className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {tx.type === 'receive' ? 'Received' : 'Sent'} {tx.amount} NETZ
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {tx.type === 'receive' ? `From: ${tx.from}` : `To: ${tx.to}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">{formatDate(tx.timestamp)}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No transactions yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="security">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Wallet Security</CardTitle>
+                  <CardDescription>Manage your wallet security settings</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="timeout">Auto-lock Timeout (minutes)</Label>
+                    <Input
+                      id="timeout"
+                      type="number"
+                      defaultValue="5"
+                      min="1"
+                      max="60"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Button variant="outline" className="w-full">
+                      <Key className="mr-2 h-4 w-4" />
+                      Export Private Key
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Button variant="outline" className="w-full">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Backup Wallet
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+      
+      {/* Add the Web Miner component */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Mining</h2>
+        <WebMiner isLoggedIn={isAuthenticated} />
+      </div>
     </div>
   );
 };
