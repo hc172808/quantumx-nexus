@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,23 +9,7 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WalletProvider } from "@/hooks/use-wallet";
 import Layout from "./components/layout/Layout";
-
-// Import pages
-import Wallet from "./pages/Wallet";
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import TokenCreation from "./pages/TokenCreation";
-import TokenInfo from "./pages/TokenInfo";
-import Marketplace from "./pages/Marketplace";
-import AdminPanel from "./pages/AdminPanel";
-import TokenPriceConfig from "./pages/TokenPriceConfig";
-import ChangePassword from "./pages/ChangePassword";
-import ForgotPassword from "./pages/ForgotPassword";
-import WhatsAppConfig from "./pages/WhatsAppConfig";
-import WalletRecoveryGuide from "./pages/guides/WalletRecoveryGuide";
-import WalletConfigGuide from "./pages/guides/WalletConfigGuide";
-import NodeConfigGuide from "./pages/guides/NodeConfigGuide";
+import NodeConfigPage from "./pages/NodeConfigPage";
 
 const queryClient = new QueryClient();
 
@@ -55,7 +38,7 @@ const App = () => (
                 <Route path="/whatsapp-config" element={<Layout><WhatsAppConfig /></Layout>} />
                 <Route path="/wallet-recovery-guide" element={<Layout><WalletRecoveryGuide /></Layout>} />
                 <Route path="/wallet-config-guide" element={<Layout><WalletConfigGuide /></Layout>} />
-                <Route path="/node-config-guide" element={<Layout><NodeConfigGuide /></Layout>} />
+                <Route path="/node-config" element={<Layout><NodeConfigPage /></Layout>} />
                 <Route path="*" element={<Layout><NotFound /></Layout>} />
               </Routes>
             </BrowserRouter>

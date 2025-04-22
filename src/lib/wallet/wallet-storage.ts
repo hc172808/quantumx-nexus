@@ -29,6 +29,11 @@ const BAN_DURATIONS = {
 };
 
 /**
+ * Default wallet lock time in milliseconds (1 minute)
+ */
+export const DEFAULT_LOCK_TIME = 60000;
+
+/**
  * Check if a wallet exists in localStorage
  */
 export function walletExists(): boolean {
@@ -437,4 +442,30 @@ export function saveCreatedToken(token: any) {
 export function getCreatedTokens() {
   const tokens = localStorage.getItem('createdTokens');
   return tokens ? JSON.parse(tokens) : [];
+}
+
+/**
+ * Set wallet lock time
+ * @param seconds Lockout time in seconds (0 to use default)
+ */
+export function setWalletLockTime(seconds: number = DEFAULT_LOCK_TIME / 1000): void {
+  try {
+    localStorage.setItem('wallet_lock_time', (seconds * 1000).toString());
+  } catch (error) {
+    console.error('Failed to set wallet lock time:', error);
+  }
+}
+
+/**
+ * Get wallet lock time
+ * @returns Wallet lock time in seconds
+ */
+export function getWalletLockTime(): number {
+  try {
+    const time = localStorage.getItem('wallet_lock_time');
+    return time ? parseInt(time, 10) : DEFAULT_LOCK_TIME;
+  } catch (error) {
+    console.error('Failed to get wallet lock time:', error);
+    return DEFAULT_LOCK_TIME;
+  }
 }
