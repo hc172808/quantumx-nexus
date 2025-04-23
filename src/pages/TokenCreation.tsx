@@ -35,6 +35,7 @@ const TokenCreation = () => {
   const [renounceOwnership, setRenounceOwnership] = useState(false);
   const [quantumProtection, setQuantumProtection] = useState(true);
 
+  // Initialize with default values to prevent null
   const [featurePricing, setFeaturePricing] = useState({
     mintable: "50",
     mutableInfo: "75",
@@ -51,17 +52,23 @@ const TokenCreation = () => {
       navigate("/login");
     }
 
+    // Get pricing and ensure it's not null by using the default values from getTokenFeaturePricing
     const pricing = getTokenFeaturePricing();
-    setFeaturePricing(pricing);
+    if (pricing) {
+      setFeaturePricing(pricing);
+    }
   }, [user, navigate]);
 
   useEffect(() => {
     let price = 100;
     
-    if (mintable) price += parseFloat(featurePricing.mintable);
-    if (mutableInfo) price += parseFloat(featurePricing.mutableInfo);
-    if (renounceOwnership) price += parseFloat(featurePricing.renounceOwnership);
-    if (quantumProtection) price += parseFloat(featurePricing.quantumProtection);
+    // Ensure featurePricing is not null before accessing properties
+    if (featurePricing) {
+      if (mintable) price += parseFloat(featurePricing.mintable || "50");
+      if (mutableInfo) price += parseFloat(featurePricing.mutableInfo || "75");
+      if (renounceOwnership) price += parseFloat(featurePricing.renounceOwnership || "25");
+      if (quantumProtection) price += parseFloat(featurePricing.quantumProtection || "200");
+    }
     
     setTotalPrice(price.toString());
   }, [mintable, mutableInfo, renounceOwnership, quantumProtection, featurePricing]);

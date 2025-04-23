@@ -1,11 +1,15 @@
-
 export const saveTokenFeaturePricing = (pricing: any) => {
   localStorage.setItem('tokenFeaturePricing', JSON.stringify(pricing));
 };
 
 export const getTokenFeaturePricing = () => {
   const pricing = localStorage.getItem('tokenFeaturePricing');
-  return pricing ? JSON.parse(pricing) : null;
+  return pricing ? JSON.parse(pricing) : {
+    mintable: "50",
+    mutableInfo: "75",
+    renounceOwnership: "25",
+    quantumProtection: "200"
+  };
 };
 
 export const getWalletLockTimeout = (): number => {
@@ -17,7 +21,6 @@ export const setWalletLockTimeout = (timeoutMs: number): void => {
   localStorage.setItem('walletLockTimeout', timeoutMs.toString());
 };
 
-// Update WalletData to match the structure expected by use-wallet.tsx
 export interface WalletData {
   address: string;
   privateKey: string;
@@ -31,7 +34,6 @@ export interface WalletData {
   path: string;
 }
 
-// Update TokenData to match the structure expected by other components
 export interface TokenData {
   id: string;
   symbol: string;
@@ -59,7 +61,6 @@ export interface WalletMeta {
 
 export const saveWalletToStorage = (wallet: WalletData, password: string): boolean => {
   try {
-    // In a real implementation, the wallet would be encrypted with the password
     localStorage.setItem('wallet', JSON.stringify(wallet));
     return true;
   } catch (error) {
@@ -107,7 +108,6 @@ export const removeWallet = (): boolean => {
   }
 };
 
-// Mining pool settings
 export interface MiningPoolConfig {
   url: string;
   port: number;
@@ -131,7 +131,6 @@ export const getMiningPoolConfig = (): MiningPoolConfig => {
   };
 };
 
-// Ban related functions
 let failedAttempts = 0;
 const MAX_ATTEMPTS = 5;
 const BAN_DURATION = 300; // 5 minutes in seconds
@@ -177,7 +176,6 @@ export const setCustomLockoutTime = (seconds: number): void => {
   localStorage.setItem('customLockoutTime', seconds.toString());
 };
 
-// Token-related functions
 export const saveCreatedToken = (token: TokenData): void => {
   const tokens = getCreatedTokens();
   tokens.push(token);
