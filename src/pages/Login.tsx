@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,16 +7,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isHuman, setIsHuman] = useState(false);
   const { toast } = useToast();
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
-  // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard");
@@ -29,7 +29,10 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Simple validation
+      if (!isHuman) {
+        throw new Error("Please verify that you are human");
+      }
+
       if (!email || !password) {
         throw new Error("Please enter both email and password");
       }
@@ -102,6 +105,19 @@ const Login = () => {
                 required
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="human" 
+                checked={isHuman}
+                onCheckedChange={(checked) => setIsHuman(checked === true)}
+              />
+              <label
+                htmlFor="human"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                I confirm that I am a human
+              </label>
+            </div>
             <div className="p-3 bg-muted rounded-md">
               <p className="text-sm text-muted-foreground">
                 We never store your wallet keys or seed phrase.
@@ -113,7 +129,7 @@ const Login = () => {
             <Button 
               type="submit"
               className="w-full bg-quantum hover:bg-quantum-dark"
-              disabled={isLoading}
+              disabled={isLoading || !isHuman}
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
