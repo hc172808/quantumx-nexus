@@ -1,4 +1,3 @@
-
 export const saveTokenFeaturePricing = (pricing: any) => {
   localStorage.setItem('tokenFeaturePricing', JSON.stringify(pricing));
 };
@@ -17,8 +16,23 @@ export const setWalletLockTimeout = (timeoutMs: number): void => {
   localStorage.setItem('walletLockTimeout', timeoutMs.toString());
 };
 
-// Add missing wallet storage functions
-export const saveWalletToStorage = (wallet: any, password: string): boolean => {
+interface WalletData {
+  address: string;
+  privateKey: string;
+  balance: string;
+}
+
+export interface TokenData {
+  symbol: string;
+  name: string;
+  balance: string;
+}
+
+export interface WalletMeta {
+  backupComplete: boolean;
+}
+
+export const saveWalletToStorage = (wallet: WalletData, password: string): boolean => {
   try {
     // In a real implementation, the wallet would be encrypted with the password
     localStorage.setItem('wallet', JSON.stringify(wallet));
@@ -29,13 +43,11 @@ export const saveWalletToStorage = (wallet: any, password: string): boolean => {
   }
 };
 
-export const getWalletFromStorage = (password: string): any => {
+export const getWalletFromStorage = (password: string): WalletData | null => {
   try {
-    // In a real implementation, the wallet would be decrypted with the password
     const walletData = localStorage.getItem('wallet');
     if (!walletData) return null;
     
-    // Increment attempt counter on failure for ban logic
     const storedWallet = JSON.parse(walletData);
     return storedWallet;
   } catch (error) {
@@ -48,7 +60,7 @@ export const walletExists = (): boolean => {
   return localStorage.getItem('wallet') !== null;
 };
 
-export const getWalletMeta = (): any => {
+export const getWalletMeta = (): WalletMeta => {
   const metaData = localStorage.getItem('walletMeta');
   return metaData ? JSON.parse(metaData) : { backupComplete: false };
 };
@@ -68,6 +80,30 @@ export const removeWallet = (): boolean => {
     console.error("Failed to remove wallet:", error);
     return false;
   }
+};
+
+// Mining pool settings
+export interface MiningPoolConfig {
+  url: string;
+  port: number;
+  enabled: boolean;
+  algorithm: string;
+  threads: number;
+}
+
+export const saveMiningPoolConfig = (config: MiningPoolConfig): void => {
+  localStorage.setItem('miningPoolConfig', JSON.stringify(config));
+};
+
+export const getMiningPoolConfig = (): MiningPoolConfig => {
+  const config = localStorage.getItem('miningPoolConfig');
+  return config ? JSON.parse(config) : {
+    url: 'pool.quantum.network',
+    port: 3333,
+    enabled: false,
+    algorithm: 'quantum',
+    threads: navigator.hardwareConcurrency || 4
+  };
 };
 
 // Ban related functions
@@ -117,13 +153,13 @@ export const setCustomLockoutTime = (seconds: number): void => {
 };
 
 // Token-related functions
-export const saveCreatedToken = (token: any): void => {
+export const saveCreatedToken = (token: TokenData): void => {
   const tokens = getCreatedTokens();
   tokens.push(token);
   localStorage.setItem('createdTokens', JSON.stringify(tokens));
 };
 
-export const getCreatedTokens = (): any[] => {
+export const getCreatedTokens = (): TokenData[] => {
   const tokens = localStorage.getItem('createdTokens');
   return tokens ? JSON.parse(tokens) : [];
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,7 +72,6 @@ const AdminPanel = () => {
   };
   
   const handleViewDetails = (id: number) => {
-    // In a real implementation, this would navigate to a detailed view
     const token = pendingTokens.find(t => t.id === id);
     if (token) {
       toast({
@@ -229,6 +227,21 @@ const AdminPanel = () => {
                 <Link to="/token-price-config">
                   <Settings className="mr-2 h-4 w-4" />
                   Configure Token Pricing
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Mining Pool Configuration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">Configure mining pool settings and connection parameters.</p>
+              <Button asChild>
+                <Link to="/mining-pool-config">
+                  <Server className="mr-2 h-4 w-4" />
+                  Mining Pool Settings
                 </Link>
               </Button>
             </CardContent>
