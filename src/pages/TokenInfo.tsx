@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getCreatedTokens } from "@/lib/wallet/wallet-storage";
+import { getCreatedTokens, TokenData } from "@/lib/wallet/wallet-storage";
 import { Shield, Coins } from "lucide-react";
 
-interface Token {
+interface Token extends TokenData {
   id: string;
   name: string;
   symbol: string;
@@ -43,8 +43,8 @@ const TokenInfo = () => {
       setIsLoading(true);
       try {
         // First check created tokens
-        const createdTokens = getCreatedTokens();
-        let foundToken = createdTokens.find((t: Token) => t.id === address);
+        const createdTokens = getCreatedTokens() as unknown as Token[];
+        let foundToken = createdTokens.find((t) => t.id === address);
         
         // If not found, check token metrics
         if (!foundToken) {

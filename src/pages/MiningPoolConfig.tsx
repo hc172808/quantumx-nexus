@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Server, Cpu } from "lucide-react";
-import { MiningPoolConfig, saveMiningPoolConfig, getMiningPoolConfig } from '@/lib/wallet/wallet-storage';
+import { type MiningPoolConfig as MiningPoolConfigType, saveMiningPoolConfig, getMiningPoolConfig } from '@/lib/wallet/wallet-storage';
 
 const MiningPoolConfig = () => {
   const { toast } = useToast();
-  const [config, setConfig] = useState<MiningPoolConfig>(getMiningPoolConfig());
+  const [config, setConfig] = useState<MiningPoolConfigType>(getMiningPoolConfig());
 
   const handleSave = () => {
     saveMiningPoolConfig(config);

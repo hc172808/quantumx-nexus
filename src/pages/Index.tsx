@@ -3,10 +3,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Shield, Coins } from "lucide-react";
-import { getCreatedTokens } from "@/lib/wallet/wallet-storage";
+import { getCreatedTokens, TokenData } from "@/lib/wallet/wallet-storage";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface Token {
+interface Token extends TokenData {
   id: string;
   name: string;
   symbol: string;
@@ -21,7 +21,7 @@ const Index = () => {
 
   useEffect(() => {
     // Load tokens from storage
-    const createdTokens = getCreatedTokens();
+    const createdTokens = getCreatedTokens() as unknown as Token[];
     const storedTokenMetrics = localStorage.getItem('tokenMetrics');
     
     if (storedTokenMetrics) {

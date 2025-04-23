@@ -1,3 +1,4 @@
+
 export const saveTokenFeaturePricing = (pricing: any) => {
   localStorage.setItem('tokenFeaturePricing', JSON.stringify(pricing));
 };
@@ -16,16 +17,40 @@ export const setWalletLockTimeout = (timeoutMs: number): void => {
   localStorage.setItem('walletLockTimeout', timeoutMs.toString());
 };
 
-interface WalletData {
+// Update WalletData to match the structure expected by use-wallet.tsx
+export interface WalletData {
   address: string;
   privateKey: string;
   balance: string;
+  mnemonic: string;
+  seed: string;
+  keyPair: {
+    privateKey: string;
+    publicKey: string;
+  };
+  path: string;
 }
 
+// Update TokenData to match the structure expected by other components
 export interface TokenData {
+  id: string;
   symbol: string;
   name: string;
   balance: string;
+  price?: number;
+  totalSupply?: string;
+  marketCap?: number;
+  network?: string;
+  features?: {
+    mintable: boolean;
+    mutableInfo: boolean;
+    renounceOwnership: boolean;
+    quantumProtection: boolean;
+  };
+  createdAt?: string;
+  creator?: string;
+  value?: number;
+  address?: string;
 }
 
 export interface WalletMeta {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +101,7 @@ const TokenCreation = () => {
         },
         createdAt: new Date().toISOString(),
         creator: user?.id || "unknown",
+        balance: "0" // Add this field to satisfy TokenData interface
       };
       
       saveCreatedToken(token);

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   WalletKeys,
@@ -6,6 +7,7 @@ import {
   validateMnemonic
 } from '@/lib/wallet/crypto-utils';
 import {
+  WalletData,
   saveWalletToStorage,
   getWalletFromStorage,
   walletExists,
@@ -16,6 +18,30 @@ import {
   getBanInfo,
   setCustomLockoutTime
 } from '@/lib/wallet/wallet-storage';
+
+// Convert WalletKeys to WalletData for storage
+const convertWalletKeysToWalletData = (wallet: WalletKeys): WalletData => {
+  return {
+    address: wallet.address,
+    privateKey: wallet.keyPair.privateKey,
+    balance: "0", // Initial balance
+    mnemonic: wallet.mnemonic,
+    seed: wallet.seed,
+    keyPair: wallet.keyPair,
+    path: wallet.path
+  };
+};
+
+// Convert WalletData back to WalletKeys structure for use in the app
+const convertWalletDataToWalletKeys = (wallet: WalletData): WalletKeys => {
+  return {
+    address: wallet.address,
+    mnemonic: wallet.mnemonic,
+    seed: wallet.seed,
+    keyPair: wallet.keyPair,
+    path: wallet.path
+  };
+};
 
 // Types
 export interface Token {
@@ -121,8 +147,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Generate new wallet with quantum protection
       const newWallet = generateWallet(128); // 12 words
       
+      // Convert WalletKeys to WalletData before saving
+      const walletData = convertWalletKeysToWalletData(newWallet);
+      
       // Save to storage encrypted with password
-      const saved = saveWalletToStorage(newWallet, password);
+      const saved = saveWalletToStorage(walletData, password);
       
       if (saved) {
         setWallet(newWallet);
@@ -166,10 +195,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Get wallet from storage
-      const retrievedWallet = getWalletFromStorage(password);
+      const retrievedWalletData = getWalletFromStorage(password);
       
-      if (retrievedWallet) {
-        setWallet(retrievedWallet);
+      if (retrievedWalletData) {
+        // Convert WalletData to WalletKeys
+        const walletKeys = convertWalletDataToWalletKeys(retrievedWalletData);
+        setWallet(walletKeys);
         setIsUnlocked(true);
         setBanInfo(null);
         
@@ -218,8 +249,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Restore wallet from mnemonic
       const restoredWallet = restoreWalletFromMnemonic(mnemonic);
       
+      // Convert WalletKeys to WalletData before saving
+      const walletData = convertWalletKeysToWalletData(restoredWallet);
+      
       // Save to storage
-      const saved = saveWalletToStorage(restoredWallet, password);
+      const saved = saveWalletToStorage(walletData, password);
       
       if (saved) {
         setWallet(restoredWallet);
