@@ -7,27 +7,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Send, Plus, ArrowDownUp, Clock, Shield, Key } from "lucide-react";
+import { Copy, Send, Plus, ArrowDownUp, Clock, Shield, Key, Lock, X, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WebMiner } from "@/components/wallet/WebMiner";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 
 const Wallet = () => {
   const { isAuthenticated, user } = useAuth();
   const { 
     wallet, 
     tokens,
-    isUnlocked, 
+    isUnlocked,
+    seedPhrase,
+    seedPhraseShown,
+    isLoading,
     createWallet, 
     lockWallet, 
     sendToken,
-    restoreWallet, // Changed from importWallet to restoreWallet to match the hook
-    isLoading 
+    showSeedPhrase,
+    hideSeedPhrase,
+    restoreWallet 
   } = useWallet();
   
   const { toast } = useToast();
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [privateKey, setPrivateKey] = useState("");
+  const [showSeedDialog, setShowSeedDialog] = useState(false);
+  const [backupConfirmed, setBackupConfirmed] = useState(false);
+  const [autoLockTimeout, setAutoLockTimeout] = useState(5);
+  const [exportPrivateKeyDialog, setExportPrivateKeyDialog] = useState(false);
+  const [securitySettings, setSecuritySettings] = useState({
+    enableAutoLock: true,
+    requirePasswordForSend: true
+  });
+  
   const [transactions, setTransactions] = useState([
     { id: 1, type: 'receive', amount: '50', from: '0x1234...5678', timestamp: Date.now() - 86400000 },
     { id: 2, type: 'send', amount: '10', to: '0x8765...4321', timestamp: Date.now() - 43200000 },
@@ -97,19 +119,19 @@ const Wallet = () => {
     if (!privateKey) {
       toast({
         title: "Error",
-        description: "Please enter a private key",
+        description: "Please enter a private key or recovery phrase",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Changed from importWalletFn to restoreWallet to match the hook
+      // Use restoreWallet function to import wallet
       const success = await restoreWallet(privateKey, "");
       
       if (success) {
         toast({
-          title: "Wallet Imported",
+          title: "Wallet Restored",
           description: "Successfully imported wallet",
         });
         setPrivateKey("");
@@ -119,10 +141,61 @@ const Wallet = () => {
     } catch (error) {
       toast({
         title: "Import Failed",
-        description: error instanceof Error ? error.message : "Invalid private key",
+        description: error instanceof Error ? error.message : "Invalid private key or recovery phrase",
         variant: "destructive",
       });
     }
+  };
+
+  const handleViewSeedPhrase = () => {
+    showSeedPhrase();
+    setShowSeedDialog(true);
+  };
+
+  const handleCloseSeedDialog = () => {
+    hideSeedPhrase();
+    setShowSeedDialog(false);
+  };
+
+  const handleBackupConfirmed = () => {
+    setBackupConfirmed(true);
+    handleCloseSeedDialog();
+    toast({
+      title: "Backup Confirmed",
+      description: "Thank you for backing up your recovery phrase",
+    });
+  };
+
+  const handleToggleAutoLock = (checked: boolean) => {
+    setSecuritySettings(prev => ({
+      ...prev,
+      enableAutoLock: checked
+    }));
+    
+    toast({
+      title: checked ? "Auto Lock Enabled" : "Auto Lock Disabled",
+      description: checked 
+        ? `Your wallet will lock automatically after ${autoLockTimeout} minutes of inactivity` 
+        : "Your wallet will stay unlocked until you manually lock it",
+    });
+  };
+  
+  const handleTogglePasswordForSend = (checked: boolean) => {
+    setSecuritySettings(prev => ({
+      ...prev,
+      requirePasswordForSend: checked
+    }));
+    
+    toast({
+      title: checked ? "Password Required" : "Password Not Required",
+      description: checked 
+        ? "You will need to enter your password for every transaction" 
+        : "Transactions can be sent without password confirmation",
+    });
+  };
+
+  const handleExportPrivateKey = () => {
+    setExportPrivateKeyDialog(true);
   };
 
   const formatDate = (timestamp: number) => {
@@ -163,24 +236,38 @@ const Wallet = () => {
             <CardDescription>Get started with your Quantum wallet</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button onClick={() => createWallet("")} className="w-full">
+            <Button 
+              onClick={() => createWallet("")} 
+              className="w-full"
+              disabled={isLoading}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Create New Wallet
             </Button>
             
-            <div className="space-y-2">
-              <Label htmlFor="privateKey">Import Existing Wallet</Label>
-              <div className="flex space-x-2">
+            <div className="space-y-2 mt-6">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="privateKey">Import Existing Wallet</Label>
+                <div className="text-xs text-muted-foreground">
+                  Enter private key or recovery phrase
+                </div>
+              </div>
+              <div className="flex flex-col space-y-2">
                 <Input
                   id="privateKey"
-                  placeholder="Enter private key"
+                  placeholder="Enter private key or recovery phrase"
                   value={privateKey}
                   onChange={(e) => setPrivateKey(e.target.value)}
                   type="password"
+                  className="mb-2"
                 />
-                <Button onClick={handleImport} disabled={isLoading}>
+                <Button 
+                  onClick={handleImport} 
+                  disabled={isLoading || !privateKey}
+                  className="w-full"
+                >
                   <Key className="mr-2 h-4 w-4" />
-                  Import
+                  Import Wallet
                 </Button>
               </div>
             </div>
@@ -211,6 +298,16 @@ const Wallet = () => {
                 </div>
               </div>
             </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={lockWallet} 
+                variant="outline" 
+                className="w-full"
+              >
+                <Lock className="mr-2 h-4 w-4" />
+                Lock Wallet
+              </Button>
+            </CardFooter>
           </Card>
           
           <Tabs defaultValue="send" className="mb-6">
@@ -318,30 +415,65 @@ const Wallet = () => {
                   <CardTitle>Wallet Security</CardTitle>
                   <CardDescription>Manage your wallet security settings</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="timeout">Auto-lock Timeout (minutes)</Label>
-                    <Input
-                      id="timeout"
-                      type="number"
-                      defaultValue="5"
-                      min="1"
-                      max="60"
-                    />
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Auto-lock Wallet</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Lock your wallet after a period of inactivity
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={securitySettings.enableAutoLock}
+                        onCheckedChange={handleToggleAutoLock}
+                      />
+                    </div>
+                    
+                    {securitySettings.enableAutoLock && (
+                      <div className="pl-4 border-l-2 border-muted">
+                        <Label htmlFor="timeout">Auto-lock Timeout (minutes)</Label>
+                        <Input
+                          id="timeout"
+                          type="number"
+                          value={autoLockTimeout}
+                          onChange={(e) => setAutoLockTimeout(parseInt(e.target.value) || 1)}
+                          min="1"
+                          max="60"
+                          className="w-full md:w-1/2 mt-1"
+                        />
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
-                    <Button variant="outline" className="w-full">
-                      <Key className="mr-2 h-4 w-4" />
-                      Export Private Key
-                    </Button>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Require Password for Transactions</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Ask for password confirmation before sending transactions
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={securitySettings.requirePasswordForSend}
+                        onCheckedChange={handleTogglePasswordForSend}
+                      />
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Button variant="outline" className="w-full">
-                      <Shield className="mr-2 h-4 w-4" />
-                      Backup Wallet
-                    </Button>
+                  <div className="pt-4 border-t border-border">
+                    <h4 className="font-medium mb-3">Recovery Options</h4>
+                    <div className="space-y-3">
+                      <Button variant="outline" className="w-full" onClick={handleViewSeedPhrase}>
+                        <Key className="mr-2 h-4 w-4" />
+                        View Recovery Phrase
+                      </Button>
+                      
+                      <Button variant="outline" className="w-full" onClick={handleExportPrivateKey}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Export Private Key
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -354,6 +486,81 @@ const Wallet = () => {
         <h2 className="text-2xl font-bold mb-4">Mining</h2>
         <WebMiner isLoggedIn={isAuthenticated} />
       </div>
+      
+      {/* Seed Phrase Dialog */}
+      <Dialog open={showSeedDialog} onOpenChange={setShowSeedDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Your Recovery Phrase</DialogTitle>
+            <DialogDescription>
+              These 12 words are the only way to recover your wallet if you lose access.
+              Write them down and store them in a safe place.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-muted p-4 rounded-md my-4">
+            <div className="font-mono text-center break-all">
+              {seedPhrase || "Loading..."}
+            </div>
+          </div>
+          
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 rounded-md">
+            <p className="text-amber-800 dark:text-amber-300 text-sm">
+              <strong>Warning:</strong> Never share your recovery phrase with anyone. Anyone with these words can take your funds.
+            </p>
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              variant="outline"
+              onClick={handleCloseSeedDialog}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Close
+            </Button>
+            
+            <Button 
+              onClick={handleBackupConfirmed}
+            >
+              <Check className="mr-2 h-4 w-4" />
+              I've Backed It Up
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Export Private Key Dialog */}
+      <Dialog open={exportPrivateKeyDialog} onOpenChange={setExportPrivateKeyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Private Key</DialogTitle>
+            <DialogDescription>
+              Your private key gives complete control over your wallet. Never share it with anyone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-muted p-4 rounded-md my-4">
+            <div className="font-mono text-center break-all">
+              {wallet?.keyPair?.privateKey || "****************"}
+            </div>
+          </div>
+          
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded-md">
+            <p className="text-red-800 dark:text-red-300 text-sm">
+              <strong>Danger:</strong> Anyone with access to your private key has complete control over your wallet.
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline"
+              onClick={() => setExportPrivateKeyDialog(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

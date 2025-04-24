@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { useWallet } from "@/hooks/use-wallet";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { MarketChart } from "@/components/market/MarketChart";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface MarketToken {
   id: string;
@@ -33,13 +35,20 @@ const Marketplace = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("marketCap");
   const navigate = useNavigate();
-  const { isUnlocked } = useWallet();
+  const { isUnlocked, buyToken, tradeToken, wallet } = useWallet();
+  const { toast } = useToast();
   
   const [currentPage, setCurrentPage] = useState(1);
   const [tokensPerPage] = useState(5);
   
   const [showTrading, setShowTrading] = useState(false);
   const [selectedToken, setSelectedToken] = useState<MarketToken | null>(null);
+  
+  // New states for buy/sell functionality
+  const [buyAmount, setBuyAmount] = useState("");
+  const [sellAmount, setSellAmount] = useState("");
+  const [buyTotal, setBuyTotal] = useState("");
+  const [sellTotal, setSellTotal] = useState("");
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -203,24 +212,142 @@ const Marketplace = () => {
     setFilteredTokens(sorted);
   }, [sortBy]);
 
+  // Calculate buy total when amount changes
+  useEffect(() => {
+    if (selectedToken && buyAmount) {
+      const amount = parseFloat(buyAmount);
+      if (!isNaN(amount)) {
+        setBuyTotal((amount * selectedToken.price).toFixed(2));
+      }
+    }
+  }, [buyAmount, selectedToken]);
+  
+  // Calculate sell total when amount changes
+  useEffect(() => {
+    if (selectedToken && sellAmount) {
+      const amount = parseFloat(sellAmount);
+      if (!isNaN(amount)) {
+        setSellTotal((amount * selectedToken.price).toFixed(2));
+      }
+    }
+  }, [sellAmount, selectedToken]);
+
   const handleBuy = (token: MarketToken) => {
     if (!isUnlocked) {
+      toast({
+        title: "Wallet Locked",
+        description: "Please unlock your wallet first",
+      });
       navigate("/wallet");
       return;
     }
     
     setSelectedToken(token);
     setShowTrading(true);
+    setBuyAmount("");
+    setSellAmount("");
+    setBuyTotal("");
+    setSellTotal("");
   };
   
   const handleTrade = (token: MarketToken) => {
     if (!isUnlocked) {
+      toast({
+        title: "Wallet Locked",
+        description: "Please unlock your wallet first",
+      });
       navigate("/wallet");
       return;
     }
     
     setSelectedToken(token);
     setShowTrading(true);
+    setBuyAmount("");
+    setSellAmount("");
+    setBuyTotal("");
+    setSellTotal("");
+  };
+  
+  const executeBuy = () => {
+    if (!selectedToken || !buyAmount || parseFloat(buyAmount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!wallet) {
+      toast({
+        title: "Wallet Error",
+        description: "Wallet is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const success = buyToken(selectedToken.symbol, buyAmount);
+      
+      if (success) {
+        toast({
+          title: "Purchase Successful",
+          description: `You bought ${buyAmount} ${selectedToken.symbol}`,
+        });
+        setBuyAmount("");
+        setBuyTotal("");
+      } else {
+        throw new Error("Purchase failed");
+      }
+    } catch (error) {
+      toast({
+        title: "Purchase Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const executeSell = () => {
+    if (!selectedToken || !sellAmount || parseFloat(sellAmount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!wallet) {
+      toast({
+        title: "Wallet Error",
+        description: "Wallet is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const success = tradeToken(selectedToken.symbol, 'sell', sellAmount, selectedToken.price);
+      
+      if (success) {
+        toast({
+          title: "Sale Successful",
+          description: `You sold ${sellAmount} ${selectedToken.symbol}`,
+        });
+        setSellAmount("");
+        setSellTotal("");
+      } else {
+        throw new Error("Sale failed");
+      }
+    } catch (error) {
+      toast({
+        title: "Sale Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   const indexOfLastToken = currentPage * tokensPerPage;
@@ -313,13 +440,43 @@ const Marketplace = () => {
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="buy-amount">Amount</Label>
-                        <Input id="buy-amount" placeholder="0.00" type="number" min="0" step="0.01" />
+                        <Input 
+                          id="buy-amount" 
+                          placeholder="0.00" 
+                          type="number" 
+                          min="0" 
+                          step="0.01" 
+                          value={buyAmount}
+                          onChange={(e) => setBuyAmount(e.target.value)}
+                        />
                       </div>
                       <div>
                         <Label htmlFor="buy-total">Total (USD)</Label>
-                        <Input id="buy-total" placeholder="0.00" type="number" min="0" step="0.01" />
+                        <Input 
+                          id="buy-total" 
+                          placeholder="0.00" 
+                          type="number" 
+                          min="0" 
+                          step="0.01"
+                          value={buyTotal}
+                          onChange={(e) => {
+                            setBuyTotal(e.target.value);
+                            if (selectedToken.price > 0) {
+                              const total = parseFloat(e.target.value);
+                              if (!isNaN(total)) {
+                                setBuyAmount((total / selectedToken.price).toFixed(4));
+                              }
+                            }
+                          }}
+                        />
                       </div>
-                      <Button className="w-full bg-quantum hover:bg-quantum-dark">Buy</Button>
+                      <Button 
+                        className="w-full bg-quantum hover:bg-quantum-dark"
+                        onClick={executeBuy}
+                        disabled={!buyAmount || parseFloat(buyAmount) <= 0}
+                      >
+                        Buy
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -332,13 +489,44 @@ const Marketplace = () => {
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="sell-amount">Amount</Label>
-                        <Input id="sell-amount" placeholder="0.00" type="number" min="0" step="0.01" />
+                        <Input 
+                          id="sell-amount" 
+                          placeholder="0.00" 
+                          type="number" 
+                          min="0" 
+                          step="0.01"
+                          value={sellAmount}
+                          onChange={(e) => setSellAmount(e.target.value)}
+                        />
                       </div>
                       <div>
                         <Label htmlFor="sell-total">Total (USD)</Label>
-                        <Input id="sell-total" placeholder="0.00" type="number" min="0" step="0.01" />
+                        <Input 
+                          id="sell-total" 
+                          placeholder="0.00" 
+                          type="number" 
+                          min="0" 
+                          step="0.01"
+                          value={sellTotal}
+                          onChange={(e) => {
+                            setSellTotal(e.target.value);
+                            if (selectedToken.price > 0) {
+                              const total = parseFloat(e.target.value);
+                              if (!isNaN(total)) {
+                                setSellAmount((total / selectedToken.price).toFixed(4));
+                              }
+                            }
+                          }}
+                        />
                       </div>
-                      <Button className="w-full" variant="outline">Sell</Button>
+                      <Button 
+                        className="w-full" 
+                        variant="outline"
+                        onClick={executeSell}
+                        disabled={!sellAmount || parseFloat(sellAmount) <= 0}
+                      >
+                        Sell
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -551,15 +739,106 @@ const Marketplace = () => {
             <TabsContent value="verified">
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-center py-8">
-                    {filteredTokens.filter(t => t.verified).length > 0 ? (
-                      <table className="w-full">
-                        {/* Same table structure as above but filtered for verified tokens */}
-                      </table>
-                    ) : (
-                      <p className="text-muted-foreground">No verified tokens found matching your search.</p>
-                    )}
-                  </div>
+                  {isLoading ? (
+                    <div className="p-8 flex justify-center">
+                      <div className="animate-pulse space-y-4 w-full">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center space-x-4">
+                            <div className="h-12 w-12 bg-muted rounded-full"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 bg-muted rounded w-1/4"></div>
+                              <div className="h-3 bg-muted rounded w-1/2"></div>
+                            </div>
+                            <div className="h-8 bg-muted rounded w-20"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      {filteredTokens.filter(t => t.verified).length > 0 ? (
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left p-4 font-medium">#</th>
+                              <th className="text-left p-4 font-medium">Token</th>
+                              <th className="text-right p-4 font-medium">Price</th>
+                              <th className="text-right p-4 font-medium hidden md:table-cell">24h Change</th>
+                              <th className="text-right p-4 font-medium hidden md:table-cell">Market Cap</th>
+                              <th className="text-center p-4 font-medium"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredTokens.filter(t => t.verified).map((token, index) => (
+                              <tr 
+                                key={token.id} 
+                                className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer"
+                                onClick={() => navigate(`/token/${token.id}`)}
+                              >
+                                <td className="p-4">{index + 1}</td>
+                                <td className="p-4">
+                                  <div className="flex items-center">
+                                    <div className="w-10 h-10 mr-3 rounded-full overflow-hidden">
+                                      <img src={token.logo} alt={token.name} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div>
+                                      <div className="font-medium flex items-center">
+                                        {token.name}
+                                        {token.quantumProtected && (
+                                          <Badge 
+                                            className="ml-2 bg-quantum text-white text-xs flex items-center py-0 h-5"
+                                          >
+                                            <Shield className="mr-1 h-3 w-3" />
+                                            Q
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">{token.symbol}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-right font-medium">${token.price.toFixed(4)}</td>
+                                <td className={`p-4 text-right hidden md:table-cell ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                                </td>
+                                <td className="p-4 text-right hidden md:table-cell">
+                                  ${token.marketCap.toLocaleString()}
+                                </td>
+                                <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex space-x-2 justify-end">
+                                    <Button 
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTrade(token);
+                                      }}
+                                    >
+                                      Trade
+                                    </Button>
+                                    <Button 
+                                      size="sm"
+                                      className="bg-quantum hover:bg-quantum-dark"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleBuy(token);
+                                      }}
+                                    >
+                                      Buy
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No verified tokens found matching your search.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -567,15 +846,101 @@ const Marketplace = () => {
             <TabsContent value="quantum">
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-center py-8">
-                    {filteredTokens.filter(t => t.quantumProtected).length > 0 ? (
-                      <table className="w-full">
-                        {/* Same table structure as above but filtered for quantum-protected tokens */}
-                      </table>
-                    ) : (
-                      <p className="text-muted-foreground">No quantum-protected tokens found matching your search.</p>
-                    )}
-                  </div>
+                  {isLoading ? (
+                    <div className="p-8 flex justify-center">
+                      <div className="animate-pulse space-y-4 w-full">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center space-x-4">
+                            <div className="h-12 w-12 bg-muted rounded-full"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 bg-muted rounded w-1/4"></div>
+                              <div className="h-3 bg-muted rounded w-1/2"></div>
+                            </div>
+                            <div className="h-8 bg-muted rounded w-20"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      {filteredTokens.filter(t => t.quantumProtected).length > 0 ? (
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left p-4 font-medium">#</th>
+                              <th className="text-left p-4 font-medium">Token</th>
+                              <th className="text-right p-4 font-medium">Price</th>
+                              <th className="text-right p-4 font-medium hidden md:table-cell">24h Change</th>
+                              <th className="text-right p-4 font-medium hidden md:table-cell">Market Cap</th>
+                              <th className="text-center p-4 font-medium"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredTokens.filter(t => t.quantumProtected).map((token, index) => (
+                              <tr 
+                                key={token.id} 
+                                className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer"
+                                onClick={() => navigate(`/token/${token.id}`)}
+                              >
+                                <td className="p-4">{index + 1}</td>
+                                <td className="p-4">
+                                  <div className="flex items-center">
+                                    <div className="w-10 h-10 mr-3 rounded-full overflow-hidden">
+                                      <img src={token.logo} alt={token.name} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div>
+                                      <div className="font-medium flex items-center">
+                                        {token.name}
+                                        {token.verified && (
+                                          <Badge variant="outline" className="ml-2 text-xs">Verified</Badge>
+                                        )}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">{token.symbol}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-right font-medium">${token.price.toFixed(4)}</td>
+                                <td className={`p-4 text-right hidden md:table-cell ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                                </td>
+                                <td className="p-4 text-right hidden md:table-cell">
+                                  ${token.marketCap.toLocaleString()}
+                                </td>
+                                <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex space-x-2 justify-end">
+                                    <Button 
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTrade(token);
+                                      }}
+                                    >
+                                      Trade
+                                    </Button>
+                                    <Button 
+                                      size="sm"
+                                      className="bg-quantum hover:bg-quantum-dark"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleBuy(token);
+                                      }}
+                                    >
+                                      Buy
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No quantum-protected tokens found matching your search.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
