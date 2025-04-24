@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +45,11 @@ const TokenCreation = () => {
 
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState(1);
+  
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [liquidityToken, setLiquidityToken] = useState("");
+  const [liquidityAmount, setLiquidityAmount] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -73,11 +77,41 @@ const TokenCreation = () => {
     setTotalPrice(price.toString());
   }, [mintable, mutableInfo, renounceOwnership, quantumProtection, featurePricing]);
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Logo file must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setLogoFile(file);
+    }
+  };
+
   const handleCreateToken = async () => {
-    if (!name || !symbol || !supply) {
+    if (!name || !symbol || !supply || !logoFile) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including logo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!liquidityToken || !liquidityAmount) {
+      toast({
+        title: "Liquidity Required",
+        description: "Please select a liquidity pair and amount",
         variant: "destructive",
       });
       return;
@@ -89,6 +123,15 @@ const TokenCreation = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const tokenId = "tk" + Math.random().toString(36).substring(2, 12);
+      
+      // Convert logo to base64 for storage
+      const reader = new FileReader();
+      const logoPromise = new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(logoFile);
+      });
+      
+      const logoData = await logoPromise;
       
       const token = {
         id: tokenId,
@@ -106,9 +149,14 @@ const TokenCreation = () => {
           renounceOwnership,
           quantumProtection,
         },
+        logo: logoData,
+        liquidityPair: {
+          token: liquidityToken,
+          amount: liquidityAmount
+        },
         createdAt: new Date().toISOString(),
         creator: user?.id || "unknown",
-        balance: "0" // Add this field to satisfy TokenData interface
+        balance: "0"
       };
       
       saveCreatedToken(token);
@@ -117,16 +165,9 @@ const TokenCreation = () => {
       if (pendingTokens) {
         const tokens = JSON.parse(pendingTokens);
         tokens.push({
-          id: tokenId,
-          name,
-          symbol,
+          ...token,
+          logo: logoPreview,
           network: network === "netz-mainnet" ? "NETZ Mainnet" : network,
-          totalSupply: supply,
-          initialPrice: parseFloat(initialPrice),
-          marketCap: parseFloat(initialPrice) * parseFloat(supply),
-          creator: user?.id || "unknown",
-          createdAt: new Date().toLocaleDateString(),
-          logo: "https://via.placeholder.com/64",
         });
         localStorage.setItem('pendingTokens', JSON.stringify(tokens));
       }
@@ -400,7 +441,60 @@ const TokenCreation = () => {
             </TabsContent>
 
             <TabsContent value="step3" className="mt-6">
-              <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="logo">Token Logo <span className="text-red-500">*</span></Label>
+                    <div className="flex items-center space-x-4">
+                      {logoPreview && (
+                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-quantum/30">
+                          <img 
+                            src={logoPreview} 
+                            alt="Token logo preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <Input
+                          id="logo"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Upload a logo for your token (max 5MB)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="liquidity-token">Liquidity Pair <span className="text-red-500">*</span></Label>
+                    <Select value={liquidityToken} onValueChange={setLiquidityToken}>
+                      <SelectTrigger id="liquidity-token">
+                        <SelectValue placeholder="Select token for liquidity pair" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="QTM">Quantum Token (QTM)</SelectItem>
+                        <SelectItem value="NETZ">NETZ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="liquidity-amount">Initial Liquidity Amount <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="liquidity-amount"
+                      type="number"
+                      placeholder="Enter amount"
+                      value={liquidityAmount}
+                      onChange={(e) => setLiquidityAmount(e.target.value)}
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Token Name:</p>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getCreatedTokens, TokenData } from "@/lib/wallet/wallet-storage";
 import { Shield, Coins } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useWallet } from "@/lib/wallet/wallet-context";
+import { Label, Input } from "@/components/ui/input";
 
 interface Token extends TokenData {
   id: string;
@@ -37,15 +39,19 @@ const TokenInfo = () => {
   const { address } = useParams<{ address: string }>();
   const [token, setToken] = useState<Token | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [buyAmount, setBuyAmount] = useState("");
+  const [sellAmount, setSellAmount] = useState("");
+  const { toast } = useToast();
+  const { tradeToken } = useWallet();
 
   useEffect(() => {
     const fetchToken = async () => {
       setIsLoading(true);
       try {
-        // First check created tokens
+        // Check created tokens
         const createdTokens = getCreatedTokens() as unknown as Token[];
         
-        // Find token by address or id (more flexible matching)
+        // Find token by address or id
         let foundToken = createdTokens.find((t) => 
           t.id === address || 
           t.address === address ||
@@ -53,21 +59,19 @@ const TokenInfo = () => {
           (typeof t.address === 'string' && t.address.toLowerCase() === address?.toLowerCase())
         );
         
-        // If not found, check token metrics
+        // Check token metrics if not found
         if (!foundToken) {
           const storedTokenMetrics = localStorage.getItem('tokenMetrics');
           if (storedTokenMetrics) {
             const tokenMetrics = JSON.parse(storedTokenMetrics);
             foundToken = tokenMetrics.find((t: Token) => 
               t.id === address || 
-              t.address === address ||
-              (typeof t.id === 'string' && t.id.toLowerCase() === address?.toLowerCase()) ||
-              (typeof t.address === 'string' && t.address.toLowerCase() === address?.toLowerCase())
+              t.address === address
             );
           }
         }
         
-        // If still not found, check built-in tokens like QTM
+        // Check built-in tokens
         if (!foundToken && address === "qv000000000000quantumtoken0000000000000") {
           foundToken = {
             id: "qv000000000000quantumtoken0000000000000",
@@ -91,17 +95,27 @@ const TokenInfo = () => {
             creator: "Quantum Network",
             holders: 10000,
             transactions: 250000,
-            volume24h: 50000
+            volume24h: 50000,
+            logo: "/src/assets/tokens/qtm.svg"
           };
         }
         
         if (foundToken) {
           setToken(foundToken);
         } else {
-          console.error(`Token with address ${address} not found`);
+          toast({
+            title: "Token Not Found",
+            description: "The requested token could not be found",
+            variant: "destructive"
+          });
         }
       } catch (error) {
         console.error("Error fetching token:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load token information",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
@@ -110,7 +124,38 @@ const TokenInfo = () => {
     if (address) {
       fetchToken();
     }
-  }, [address]);
+  }, [address, toast]);
+
+  const handleTrade = (type: 'buy' | 'sell') => {
+    const amount = type === 'buy' ? buyAmount : sellAmount;
+    if (!token || !amount) {
+      toast({
+        title: "Invalid Trade",
+        description: "Please enter a valid amount",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const success = tradeToken(token.symbol, type, amount, token.price || 0);
+    if (success) {
+      toast({
+        title: "Trade Successful",
+        description: `Successfully ${type === 'buy' ? 'bought' : 'sold'} ${amount} ${token.symbol}`,
+      });
+      if (type === 'buy') {
+        setBuyAmount("");
+      } else {
+        setSellAmount("");
+      }
+    } else {
+      toast({
+        title: "Trade Failed",
+        description: `Failed to ${type} tokens. Please check your balance and try again.`,
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -298,8 +343,40 @@ const TokenInfo = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between space-x-2">
-                <Button className="w-1/2 bg-green-600 hover:bg-green-700">Buy</Button>
-                <Button className="w-1/2 bg-red-600 hover:bg-red-700">Sell</Button>
+                <div className="w-1/2 space-y-2">
+                  <Label htmlFor="buy-amount">Buy Amount</Label>
+                  <Input
+                    id="buy-amount"
+                    type="number"
+                    value={buyAmount}
+                    onChange={(e) => setBuyAmount(e.target.value)}
+                    placeholder="0.00"
+                  />
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => handleTrade('buy')}
+                    disabled={!buyAmount}
+                  >
+                    Buy
+                  </Button>
+                </div>
+                <div className="w-1/2 space-y-2">
+                  <Label htmlFor="sell-amount">Sell Amount</Label>
+                  <Input
+                    id="sell-amount"
+                    type="number"
+                    value={sellAmount}
+                    onChange={(e) => setSellAmount(e.target.value)}
+                    placeholder="0.00"
+                  />
+                  <Button 
+                    className="w-full bg-red-600 hover:bg-red-700"
+                    onClick={() => handleTrade('sell')}
+                    disabled={!sellAmount}
+                  >
+                    Sell
+                  </Button>
+                </div>
               </div>
               <Separator />
               <div className="space-y-2">
@@ -342,4 +419,3 @@ const TokenInfo = () => {
 };
 
 export default TokenInfo;
-
