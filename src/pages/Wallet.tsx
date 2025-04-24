@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Send, Plus, ArrowDownUp, Clock, Shield, Key, Lock, X, Check } from "lucide-react";
+import { Copy, Send, Plus, ArrowDownUp, Clock, Shield, Key, Lock, X, Check, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WebMiner } from "@/components/wallet/WebMiner";
 import { 
@@ -34,7 +34,8 @@ const Wallet = () => {
     sendToken,
     showSeedPhrase,
     hideSeedPhrase,
-    restoreWallet 
+    restoreWallet,
+    confirmSeedPhraseSaved
   } = useWallet();
   
   const { toast } = useToast();
@@ -49,6 +50,19 @@ const Wallet = () => {
     enableAutoLock: true,
     requirePasswordForSend: true
   });
+  
+  // Load security settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('securitySettings');
+    if (savedSettings) {
+      setSecuritySettings(JSON.parse(savedSettings));
+    }
+  }, []);
+  
+  // Save security settings to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('securitySettings', JSON.stringify(securitySettings));
+  }, [securitySettings]);
   
   const [transactions, setTransactions] = useState([
     { id: 1, type: 'receive', amount: '50', from: '0x1234...5678', timestamp: Date.now() - 86400000 },
@@ -127,7 +141,7 @@ const Wallet = () => {
 
     try {
       // Use restoreWallet function to import wallet
-      const success = await restoreWallet(privateKey, "");
+      const success = await restoreWallet(privateKey, "password");
       
       if (success) {
         toast({
@@ -159,6 +173,7 @@ const Wallet = () => {
 
   const handleBackupConfirmed = () => {
     setBackupConfirmed(true);
+    confirmSeedPhraseSaved();
     handleCloseSeedDialog();
     toast({
       title: "Backup Confirmed",
@@ -198,9 +213,55 @@ const Wallet = () => {
     setExportPrivateKeyDialog(true);
   };
 
+  const handleCreateWallet = async () => {
+    try {
+      const success = await createWallet("password");
+      
+      if (success) {
+        // Automatically show recovery phrase dialog after wallet creation
+        setTimeout(() => {
+          showSeedPhrase();
+          setShowSeedDialog(true);
+        }, 500);
+      }
+    } catch (error) {
+      toast({
+        title: "Wallet Creation Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleString();
+  };
+
+  const downloadBackup = () => {
+    if (!wallet) return;
+    
+    const backupData = {
+      walletAddress: wallet.address,
+      recoveryPhrase: seedPhrase,
+      createdAt: new Date().toISOString()
+    };
+    
+    const jsonData = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `quantum-wallet-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Backup Downloaded",
+      description: "Keep this file in a secure location",
+    });
   };
 
   if (!isAuthenticated) {
@@ -237,7 +298,7 @@ const Wallet = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <Button 
-              onClick={() => createWallet("")} 
+              onClick={handleCreateWallet} 
               className="w-full"
               disabled={isLoading}
             >
@@ -473,6 +534,11 @@ const Wallet = () => {
                         <Shield className="mr-2 h-4 w-4" />
                         Export Private Key
                       </Button>
+
+                      <Button variant="outline" className="w-full" onClick={downloadBackup}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Backup Wallet
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -502,6 +568,16 @@ const Wallet = () => {
             <div className="font-mono text-center break-all">
               {seedPhrase || "Loading..."}
             </div>
+            {seedPhrase && (
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {seedPhrase.split(" ").map((word, index) => (
+                  <div key={index} className="flex items-center">
+                    <span className="text-muted-foreground text-xs mr-1">{index + 1}.</span>
+                    <span className="font-mono text-sm">{word}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 rounded-md">

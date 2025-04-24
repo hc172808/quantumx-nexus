@@ -44,15 +44,55 @@ const TokenInfo = () => {
       try {
         // First check created tokens
         const createdTokens = getCreatedTokens() as unknown as Token[];
-        let foundToken = createdTokens.find((t) => t.id === address);
+        
+        // Find token by address or id (more flexible matching)
+        let foundToken = createdTokens.find((t) => 
+          t.id === address || 
+          t.address === address ||
+          (typeof t.id === 'string' && t.id.toLowerCase() === address?.toLowerCase()) ||
+          (typeof t.address === 'string' && t.address.toLowerCase() === address?.toLowerCase())
+        );
         
         // If not found, check token metrics
         if (!foundToken) {
           const storedTokenMetrics = localStorage.getItem('tokenMetrics');
           if (storedTokenMetrics) {
             const tokenMetrics = JSON.parse(storedTokenMetrics);
-            foundToken = tokenMetrics.find((t: Token) => t.id === address);
+            foundToken = tokenMetrics.find((t: Token) => 
+              t.id === address || 
+              t.address === address ||
+              (typeof t.id === 'string' && t.id.toLowerCase() === address?.toLowerCase()) ||
+              (typeof t.address === 'string' && t.address.toLowerCase() === address?.toLowerCase())
+            );
           }
+        }
+        
+        // If still not found, check built-in tokens like QTM
+        if (!foundToken && address === "qv000000000000quantumtoken0000000000000") {
+          foundToken = {
+            id: "qv000000000000quantumtoken0000000000000",
+            address: "qv000000000000quantumtoken0000000000000",
+            name: "Quantum Token",
+            symbol: "QTM",
+            balance: "1000",
+            value: 1.25,
+            price: 1.25,
+            totalSupply: "1000000",
+            marketCap: 1250000,
+            description: "The native token of the Quantum Network blockchain",
+            network: "netz-mainnet",
+            features: {
+              mintable: true,
+              mutableInfo: false,
+              renounceOwnership: false,
+              quantumProtection: true
+            },
+            createdAt: new Date().toISOString(),
+            creator: "Quantum Network",
+            holders: 10000,
+            transactions: 250000,
+            volume24h: 50000
+          };
         }
         
         if (foundToken) {
@@ -302,3 +342,4 @@ const TokenInfo = () => {
 };
 
 export default TokenInfo;
+

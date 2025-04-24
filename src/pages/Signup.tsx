@@ -21,6 +21,9 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [step, setStep] = useState<"form" | "recovery">("form");
   const [recoveryPhrase, setRecoveryPhrase] = useState("");
+  const [confirmationWords, setConfirmationWords] = useState<{ index: number, word: string }[]>([]);
+  const [userConfirmation, setUserConfirmation] = useState<{[key: number]: string}>({});
+  const [recoveryPhraseConfirmed, setRecoveryPhraseConfirmed] = useState(false);
   const { toast } = useToast();
   const { signup } = useAuth();
   const navigate = useNavigate();
@@ -51,10 +54,24 @@ const Signup = () => {
       const mnemonic = generateMnemonic(128); // 12 words
       setRecoveryPhrase(mnemonic);
       
+      // Generate confirmation test (3 random words to verify)
+      const words = mnemonic.split(" ");
+      const wordIndices = [];
+      while (wordIndices.length < 3) {
+        const randomIndex = Math.floor(Math.random() * words.length);
+        if (!wordIndices.includes(randomIndex)) {
+          wordIndices.push(randomIndex);
+        }
+      }
+      
+      setConfirmationWords(
+        wordIndices.map(index => ({ index, word: words[index] }))
+      );
+      
       const success = await signup(email, password);
       
       if (success) {
-        // Move to recovery phrase step instead of navigating directly
+        // Move to recovery phrase step
         setStep("recovery");
       } else {
         throw new Error("Failed to create account");
@@ -69,13 +86,39 @@ const Signup = () => {
     }
   };
 
+  const handleConfirmationWordChange = (index: number, value: string) => {
+    setUserConfirmation(prev => ({ ...prev, [index]: value }));
+  };
+
+  const validateRecoveryPhraseConfirmation = () => {
+    for (const { index, word } of confirmationWords) {
+      if (userConfirmation[index]?.toLowerCase() !== word.toLowerCase()) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleRecoveryPhraseConfirmed = () => {
-    setIsLoading(false);
-    toast({
-      title: "Account Created",
-      description: "Your account has been successfully created. Keep your recovery phrase safe!",
-    });
-    navigate("/wallet");
+    if (!recoveryPhraseConfirmed) {
+      const isValid = validateRecoveryPhraseConfirmation();
+      if (!isValid) {
+        toast({
+          title: "Verification Failed",
+          description: "The words you entered do not match your recovery phrase.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setRecoveryPhraseConfirmed(true);
+    } else {
+      setIsLoading(false);
+      toast({
+        title: "Account Created",
+        description: "Your account has been successfully created. Keep your recovery phrase safe!",
+      });
+      navigate("/wallet");
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -111,16 +154,40 @@ const Signup = () => {
               </div>
             </div>
             
-            <div className="bg-red-100 p-3 rounded-md border border-red-300">
-              <p className="text-sm text-red-700">
-                <strong>Warning:</strong> Never share this phrase with anyone. Anyone with this phrase can access your account.
-                This phrase will never be shown again!
-              </p>
-            </div>
+            {!recoveryPhraseConfirmed ? (
+              <div className="space-y-4">
+                <div className="bg-red-100 p-3 rounded-md border border-red-300">
+                  <p className="text-sm text-red-700">
+                    <strong>Verification:</strong> Please enter the following words from your recovery phrase to confirm you have saved it.
+                  </p>
+                </div>
+                
+                <div className="grid gap-3">
+                  {confirmationWords.map(({ index, word }) => (
+                    <div key={index} className="space-y-1">
+                      <Label htmlFor={`word-${index}`}>Word #{index + 1}</Label>
+                      <Input 
+                        id={`word-${index}`}
+                        value={userConfirmation[index] || ""}
+                        onChange={(e) => handleConfirmationWordChange(index, e.target.value)}
+                        placeholder={`Enter word #${index + 1}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-green-100 p-3 rounded-md border border-green-300">
+                <p className="text-sm text-green-700">
+                  <strong>Verified:</strong> You have successfully verified your recovery phrase. Make sure to keep it in a safe place.
+                </p>
+              </div>
+            )}
             
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="confirmed" 
+                checked={termsAccepted}
                 onCheckedChange={(checked) => setTermsAccepted(checked === true)}
               />
               <label
@@ -135,9 +202,9 @@ const Signup = () => {
             <Button 
               onClick={handleRecoveryPhraseConfirmed}
               className="w-full bg-quantum hover:bg-quantum-dark"
-              disabled={!termsAccepted}
+              disabled={!termsAccepted || (!recoveryPhraseConfirmed && !validateRecoveryPhraseConfirmation())}
             >
-              Continue to Wallet
+              {recoveryPhraseConfirmed ? "Continue to Wallet" : "Verify Recovery Phrase"}
             </Button>
           </CardFooter>
         </Card>
