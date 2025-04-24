@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,6 +32,7 @@ import NodeConfig from "./pages/NodeConfig";
 import DomainSettings from "./pages/DomainSettings";
 import WalletDownload from "./pages/WalletDownload";
 import MiningPoolConfig from "./pages/MiningPoolConfig";
+import Documentation from "./pages/Documentation";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +66,7 @@ const App = () => (
                 <Route path="/domain-settings" element={<Layout><DomainSettings /></Layout>} />
                 <Route path="/wallet-download" element={<Layout><WalletDownload /></Layout>} />
                 <Route path="/mining-pool-config" element={<Layout><MiningPoolConfig /></Layout>} />
+                <Route path="/docs" element={<Layout><Documentation /></Layout>} />
                 <Route path="*" element={<Layout><NotFound /></Layout>} />
               </Routes>
             </BrowserRouter>
