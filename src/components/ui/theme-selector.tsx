@@ -13,7 +13,7 @@ import { getAdminSettings } from "@/lib/admin/admin-settings";
 import { useTheme } from "@/hooks/use-theme";
 
 export function ThemeSelector() {
-  const { setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
   const adminSettings = getAdminSettings();
   
   // If user theme selection is disabled, return null

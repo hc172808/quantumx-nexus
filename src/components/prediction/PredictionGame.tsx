@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export const PredictionGame = ({ token, currentPrice }: PredictionGameProps) => 
     // Create the prediction
     const prediction = createPrediction(
       user.id,
-      user.displayName || user.email || 'Anonymous',
+      user.email || 'Anonymous', // Fix: Use email instead of displayName
       token,
       direction,
       amount,
